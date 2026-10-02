@@ -35,23 +35,33 @@ export interface BuilderMember {
 export interface EventSession {
   id: string;
   title: string;
-  type: 'Workshop' | 'Bootcamp' | 'Keynote' | 'Hackathon' | 'Community' | 'Watch Party';
-  date: string;
+  type: string;
+  eventDate: string;
+  date?: string;
   time: string;
   location: string;
-  speaker: string;
+  speakerName: string;
   speakerRole: string;
   tags: string[];
-  seatsRemaining: number;
-  totalSeats: number;
   description: string;
   bannerGradient?: string;
   isPast?: boolean;
-  attendedCount?: number;
+  meetupLink?: string;
+  meetup_link?: string;
+  thumbnailUrl?: string;
+  thumbnail_url?: string;
+  prerequisites?: string;
+  bannerTemplates?: any[];
+  banner_templates?: any[];
+  post_event_photo_url?: string;
+  post_event_text?: string;
+  postEventPhotoUrl?: string;
+  postEventText?: string;
   slidesUrl?: string;
   githubUrl?: string;
   recordingUrl?: string;
 }
+
 
 export interface CertificateRecord {
   id: string;
