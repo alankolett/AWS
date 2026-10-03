@@ -43,7 +43,7 @@ export const FounderStory: React.FC<FounderStoryProps> = ({
 }) => {
   const displayTimeline = timeline && timeline.length > 0 ? timeline : FOUNDER_STORY.timeline;
   const displayAvatar = avatarUrl || '/stickman.svg';
-  const displayBio = bio && bio.trim().length > 0 ? bio : FOUNDER_STORY.bio;
+  const displayBio = bio && bio.trim().length > 0 ? bio : (FOUNDER_STORY.bio || '');
 
   return (
     <section id="founder" className="py-20 px-4 sm:px-6 lg:px-8 border-b border-white/[0.08] scroll-mt-16">

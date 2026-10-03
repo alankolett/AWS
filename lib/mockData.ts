@@ -98,6 +98,7 @@ export const FOUNDER_STORY = {
   quote: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
   author: "Founder Name",
   role: "Founder / Captain",
+  bio: "AWS Student Builder Group Chapter Founder & Lead at Symbiosis Skills and Professional University. Passionate about cloud architecture, serverless computing, and empowering student builders.",
   timeline: [
     {
       date: "Jan 2026",
