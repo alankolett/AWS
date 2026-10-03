@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { createClient } from '@/lib/infrastructure/supabase/client';
+import { checkEmailAuthState } from '@/app/actions/admin';
 import { AwsLogo } from '@/components/common/AwsLogo';
 import { useRouter } from 'next/navigation';
 
@@ -23,24 +24,14 @@ export default function AuthPage() {
     setLoading(true);
     setError('');
 
-    // Query the profile to see if they need a password change
-    const { data: profile, error: fetchError } = await supabase
-      .from('profiles')
-      .select('needs_password_change')
-      .eq('email', email)
-      .single();
-
-    if (fetchError) {
-      console.error('Profile fetch error:', fetchError);
-    }
-
-    if (fetchError || !profile) {
-      setError('No builder profile found for this email.');
+    const res = await checkEmailAuthState(email);
+    if (!res.found || res.error) {
+      setError(res.error || 'No builder profile found for this email.');
       setLoading(false);
       return;
     }
 
-    if (profile.needs_password_change) {
+    if (res.needs_password_change) {
       setMode('passkey');
     } else {
       setMode('password');

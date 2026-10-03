@@ -274,15 +274,26 @@ export default async function TeamMemberPage({ params }: { params: { teamId: str
               <div className="space-y-4">
                 {memberData.certs.map((cert: any, idx: number) => {
                   const certTitle = typeof cert === 'string' ? cert : cert.name || 'AWS Certification';
+                  const issuer = typeof cert === 'object' && cert.issuer ? cert.issuer : null;
+                  const credId = typeof cert === 'object' && cert.credential_id ? cert.credential_id : null;
                   return (
                     <div
                       key={idx}
-                      className="flex items-center gap-3 p-3.5 rounded-xl bg-[#080b10] border border-white/[0.05]"
+                      className="flex items-center justify-between p-3.5 rounded-xl bg-[#080b10] border border-white/[0.05]"
                     >
-                      <ShieldCheck className="w-5 h-5 text-[#ff9900] shrink-0" />
-                      <span className="text-xs sm:text-sm text-slate-200 font-medium">
-                        {certTitle}
-                      </span>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <ShieldCheck className="w-5 h-5 text-[#ff9900] shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-xs sm:text-sm text-slate-200 font-medium truncate">
+                            {certTitle}
+                          </div>
+                          {(issuer || credId) && (
+                            <div className="text-[11px] font-mono text-slate-400 mt-0.5 truncate">
+                              {issuer || 'AWS'} {credId ? `· ID: ${credId}` : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   );
                 })}

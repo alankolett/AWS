@@ -17,14 +17,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark scroll-smooth">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-          rel="stylesheet"
-        />
-      </head>
       <body className="bg-aws-canvas text-slate-200 antialiased min-h-screen selection:bg-purple-600 selection:text-white">
         <AwsGridLoader />
         <div className="min-h-screen bg-[#080b10] text-[#f1f5f9] flex flex-col selection:bg-[#ff9900]/30 selection:text-white">

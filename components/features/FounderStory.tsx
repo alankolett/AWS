@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck, Github, Linkedin, Globe, Quote, Terminal } from 'lucide-react';
+import { ShieldCheck, Github, Linkedin, Globe, Quote, Terminal, User, Award, Layers } from 'lucide-react';
 import { FOUNDER_STORY } from '@/lib/mockData';
 
 interface FounderStoryProps {
@@ -15,6 +15,11 @@ interface FounderStoryProps {
   linkedinUrl?: string;
   portfolioUrl?: string;
   headline?: string;
+  division?: string;
+  branch?: string;
+  year?: string;
+  certifications?: any[];
+  badges?: any[];
   timeline?: { date: string; title: string; description: string }[];
 }
 
@@ -29,10 +34,16 @@ export const FounderStory: React.FC<FounderStoryProps> = ({
   linkedinUrl,
   portfolioUrl,
   headline,
+  division,
+  branch,
+  year,
+  certifications,
+  badges,
   timeline
 }) => {
   const displayTimeline = timeline && timeline.length > 0 ? timeline : FOUNDER_STORY.timeline;
   const displayAvatar = avatarUrl || '/stickman.svg';
+  const displayBio = bio && bio.trim().length > 0 ? bio : FOUNDER_STORY.bio;
 
   return (
     <section id="founder" className="py-20 px-4 sm:px-6 lg:px-8 border-b border-white/[0.08] scroll-mt-16">
@@ -81,23 +92,51 @@ export const FounderStory: React.FC<FounderStoryProps> = ({
               </div>
             </div>
 
-            {bio && (
-              <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                {bio}
-              </p>
-            )}
+            {/* Certifications & Badges */}
+            <div className="space-y-3">
+              <div className="text-[11px] font-mono uppercase text-slate-500 tracking-wider flex items-center justify-between">
+                <span>Accreditations & Credentials</span>
+                <span className="text-[10px] text-[#ff9900]">AWS VERIFIED</span>
+              </div>
 
-            {/* Certifications Verified */}
-            <div className="space-y-2">
-              <div className="text-[11px] font-mono uppercase text-slate-500 tracking-wider">
-                Accreditations
+              <div className="space-y-2">
+                {certifications && certifications.length > 0 ? (
+                  certifications.map((cert: any, idx: number) => {
+                    const title = typeof cert === 'string' ? cert : cert.name || 'AWS Certification';
+                    const issuer = typeof cert === 'object' && cert.issuer ? cert.issuer : null;
+                    return (
+                      <div key={idx} className="flex items-start gap-2 text-xs font-mono text-slate-300">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#ff9900] shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">{title}</div>
+                          {issuer && <div className="text-[10px] text-slate-500 truncate">{issuer}</div>}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#ff9900] shrink-0" />
+                    <span className="truncate">AWS Certified Solutions Architect</span>
+                  </div>
+                )}
               </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#ff9900] shrink-0" />
-                  <span className="truncate">AWS Certified Solutions Architect</span>
+
+              {badges && badges.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {badges.map((badge: any, idx: number) => {
+                    const bName = typeof badge === 'string' ? badge : badge.name || 'Badge';
+                    return (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 rounded bg-purple-950/40 text-purple-300 border border-purple-500/20 text-[10px] font-mono"
+                      >
+                        {bName}
+                      </span>
+                    );
+                  })}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Founder Digital Signature Strip */}
@@ -149,8 +188,8 @@ export const FounderStory: React.FC<FounderStoryProps> = ({
             </div>
           </div>
 
-          {/* Right Column: Mission Statement, The "Why", & Narrative Timeline (8 cols) */}
-          <div className="lg:col-span-8 space-y-10">
+          {/* Right Column: Mission Statement, Dedicated "About Me", & Narrative Timeline (8 cols) */}
+          <div className="lg:col-span-8 space-y-8">
             {/* Mission Statement (Large Serif Quote) */}
             <div className="relative pl-6 sm:pl-8 py-2">
               <div className="absolute top-0 left-0 w-1 h-full bg-[#a855f7] rounded-full"></div>
@@ -158,6 +197,55 @@ export const FounderStory: React.FC<FounderStoryProps> = ({
               <p className="text-xl sm:text-2xl font-serif text-slate-200 leading-relaxed italic relative z-10">
                 "{quote}"
               </p>
+            </div>
+
+            {/* Dedicated "About Chapter Founder / About Me" Section */}
+            <div className="p-6 sm:p-8 rounded-2xl bg-[#0f141c] border border-white/[0.08] shadow-xl space-y-4 relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.05] pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/20 flex items-center justify-center">
+                    <User className="w-4 h-4 text-[#c084fc]" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold text-white font-sans">
+                      About Chapter Founder // Background & Leadership
+                    </h3>
+                    <div className="text-[11px] font-mono text-slate-400">
+                      {name} · {role}
+                    </div>
+                  </div>
+                </div>
+
+                {builderId && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.03] border border-white/[0.08] text-[11px] font-mono text-slate-300 self-start sm:self-auto">
+                    ID: {builderId}
+                  </span>
+                )}
+              </div>
+
+              <div className="text-slate-300 leading-relaxed text-sm sm:text-base font-sans whitespace-pre-line">
+                {displayBio}
+              </div>
+
+              {(branch || year || division) && (
+                <div className="pt-3 border-t border-white/[0.04] flex flex-wrap items-center gap-2 text-xs font-mono">
+                  {branch && (
+                    <span className="px-2.5 py-1 rounded-md bg-[#080b10] border border-white/[0.08] text-slate-300">
+                      {branch}
+                    </span>
+                  )}
+                  {year && (
+                    <span className="px-2.5 py-1 rounded-md bg-[#080b10] border border-white/[0.08] text-slate-400">
+                      {year}
+                    </span>
+                  )}
+                  {division && (
+                    <span className="px-2.5 py-1 rounded-md bg-[#a855f7]/10 border border-[#a855f7]/30 text-[#c084fc]">
+                      {division}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Narrative Timeline */}

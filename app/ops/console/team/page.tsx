@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/infrastructure/supabase/client';
 import { updateProfile, deleteMember } from '@/app/actions/profiles';
 import { createDomain, updateDomain, deleteDomain } from '@/app/actions/domains';
+import { resetUserPasswordToPasskey } from '@/app/actions/admin';
 import { ImageUpload } from '@/components/common/ImageUpload';
 import {
   Users,
@@ -18,9 +19,26 @@ import {
   Shield,
   Briefcase,
   ExternalLink,
-  Tag
+  Tag,
+  KeyRound,
+  RotateCcw,
+  Lock,
+  Award,
+  ShieldCheck,
 } from 'lucide-react';
 import Link from 'next/link';
+
+const AWS_CERT_PRESETS = [
+  'AWS Certified Cloud Practitioner',
+  'AWS Certified Solutions Architect – Associate',
+  'AWS Certified Developer – Associate',
+  'AWS Certified SysOps Administrator – Associate',
+  'AWS Certified Solutions Architect – Professional',
+  'AWS Certified DevOps Engineer – Professional',
+  'AWS Certified Security – Specialty',
+  'AWS Certified Machine Learning – Specialty',
+  'AWS Certified Data Engineer – Associate',
+];
 
 export default function TeamManagementPage() {
   const [user, setUser] = useState<any>(null);
@@ -96,10 +114,88 @@ export default function TeamManagementPage() {
     }
   };
 
+  // Reset Passkey state
+  const [resetPasskeyVal, setResetPasskeyVal] = useState('000000');
+  const [resetMsg, setResetMsg] = useState('');
+  const [resettingPasskey, setResettingPasskey] = useState(false);
+  const [showResetBox, setShowResetBox] = useState(false);
+
+  // Cert & Badge states for edit modal
+  const [modalCertTitle, setModalCertTitle] = useState('');
+  const [modalCertIssuer, setModalCertIssuer] = useState('Amazon Web Services (AWS)');
+  const [modalCertId, setModalCertId] = useState('');
+  const [modalBadgeText, setModalBadgeText] = useState('');
+
   const openEditModal = (member: any) => {
-    setEditingProfile({ ...member });
+    setEditingProfile({
+      ...member,
+      certifications: Array.isArray(member.certifications) ? member.certifications : [],
+      badges: Array.isArray(member.badges) ? member.badges : [],
+    });
     setProfileMsg('');
+    setShowResetBox(false);
+    setResetMsg('');
+    setResetPasskeyVal(Math.floor(100000 + Math.random() * 900000).toString());
+    setModalCertTitle('');
+    setModalCertIssuer('Amazon Web Services (AWS)');
+    setModalCertId('');
+    setModalBadgeText('');
     setIsModalOpen(true);
+  };
+
+  const handleModalAddCert = () => {
+    if (!modalCertTitle.trim() || !editingProfile) return;
+    const current = Array.isArray(editingProfile.certifications) ? [...editingProfile.certifications] : [];
+    const newCert = {
+      name: modalCertTitle.trim(),
+      issuer: modalCertIssuer.trim() || 'Amazon Web Services (AWS)',
+      credential_id: modalCertId.trim() || undefined,
+    };
+    setEditingProfile({ ...editingProfile, certifications: [...current, newCert] });
+    setModalCertTitle('');
+    setModalCertId('');
+  };
+
+  const handleModalRemoveCert = (index: number) => {
+    if (!editingProfile) return;
+    const current = [...(editingProfile.certifications || [])];
+    current.splice(index, 1);
+    setEditingProfile({ ...editingProfile, certifications: current });
+  };
+
+  const handleModalAddBadge = () => {
+    if (!modalBadgeText.trim() || !editingProfile) return;
+    const current = Array.isArray(editingProfile.badges) ? [...editingProfile.badges] : [];
+    const val = modalBadgeText.trim();
+    if (!current.includes(val)) {
+      setEditingProfile({ ...editingProfile, badges: [...current, val] });
+    }
+    setModalBadgeText('');
+  };
+
+  const handleModalRemoveBadge = (index: number) => {
+    if (!editingProfile) return;
+    const current = [...(editingProfile.badges || [])];
+    current.splice(index, 1);
+    setEditingProfile({ ...editingProfile, badges: current });
+  };
+
+  const handleResetMemberPasskey = async () => {
+    if (!editingProfile?.id) return;
+    if (resetPasskeyVal.trim().length !== 6) {
+      setResetMsg('Passkey must be exactly 6 characters.');
+      return;
+    }
+    setResettingPasskey(true);
+    setResetMsg('');
+    const res = await resetUserPasswordToPasskey(editingProfile.id, resetPasskeyVal.trim());
+    if (res.error) {
+      setResetMsg(`Error: ${res.error}`);
+    } else {
+      setResetMsg(`Password cleared! Temporary passkey "${resetPasskeyVal.trim()}" activated.`);
+      loadData();
+    }
+    setResettingPasskey(false);
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -502,6 +598,242 @@ export default function TeamManagementPage() {
                     className="w-full bg-[#080b10] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
+              </div>
+
+              {/* CERTIFICATIONS & CREDENTIALS SECTION */}
+              <div className="p-4 sm:p-5 rounded-xl bg-[#080b10] border border-white/[0.08] space-y-4">
+                <div className="flex items-center justify-between border-b border-white/[0.05] pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-[#ff9900]" />
+                    <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                      Certifications & Badges
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Displayed on builder profile & directory card
+                  </span>
+                </div>
+
+                {/* List Existing Certifications */}
+                {editingProfile.certifications && editingProfile.certifications.length > 0 ? (
+                  <div className="space-y-2">
+                    {editingProfile.certifications.map((cert: any, idx: number) => {
+                      const title = typeof cert === 'string' ? cert : cert.name || 'Certification';
+                      const issuer = typeof cert === 'object' && cert.issuer ? cert.issuer : null;
+                      const credId = typeof cert === 'object' && cert.credential_id ? cert.credential_id : null;
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-[#0f141c] border border-white/[0.06]"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <ShieldCheck className="w-4 h-4 text-[#ff9900] shrink-0" />
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold text-white truncate">{title}</div>
+                              {(issuer || credId) && (
+                                <div className="text-[10px] font-mono text-slate-400 truncate">
+                                  {issuer || 'AWS'} {credId ? `· ID: ${credId}` : ''}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleModalRemoveCert(idx)}
+                            className="p-1 text-slate-400 hover:text-red-400 rounded transition-colors shrink-0 ml-2"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-[11px] font-mono text-slate-500 py-1">
+                    No certifications added to this member yet.
+                  </div>
+                )}
+
+                {/* Add New Cert Form */}
+                <div className="p-3 rounded-lg bg-[#0f141c] border border-white/[0.05] space-y-2">
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setModalCertTitle(e.target.value);
+                        setModalCertIssuer('Amazon Web Services (AWS)');
+                      }
+                    }}
+                    className="w-full bg-[#080b10] border border-white/[0.1] rounded px-2.5 py-1.5 text-xs text-slate-300 font-mono focus:outline-none"
+                  >
+                    <option value="">-- Quick Select AWS Certification --</option>
+                    {AWS_CERT_PRESETS.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                    <div className="sm:col-span-6">
+                      <input
+                        type="text"
+                        value={modalCertTitle}
+                        onChange={e => setModalCertTitle(e.target.value)}
+                        placeholder="Certification Name"
+                        className="w-full bg-[#080b10] border border-white/[0.1] rounded px-2.5 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <input
+                        type="text"
+                        value={modalCertIssuer}
+                        onChange={e => setModalCertIssuer(e.target.value)}
+                        placeholder="Issuer (AWS)"
+                        className="w-full bg-[#080b10] border border-white/[0.1] rounded px-2.5 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <input
+                        type="text"
+                        value={modalCertId}
+                        onChange={e => setModalCertId(e.target.value)}
+                        placeholder="Credential ID"
+                        className="w-full bg-[#080b10] border border-white/[0.1] rounded px-2.5 py-1.5 text-xs font-mono text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={handleModalAddCert}
+                      disabled={!modalCertTitle.trim()}
+                      className="px-3 py-1 bg-[#ff9900]/20 hover:bg-[#ff9900]/30 text-[#ff9900] border border-[#ff9900]/40 rounded text-xs font-mono font-bold flex items-center gap-1 transition-colors disabled:opacity-40"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Cert</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Skill Badges */}
+                <div className="space-y-2 pt-2 border-t border-white/[0.05]">
+                  <span className="block text-[11px] font-mono text-slate-300 font-semibold">
+                    Skill Badges
+                  </span>
+
+                  <div className="flex flex-wrap gap-1.5 min-h-[30px]">
+                    {editingProfile.badges && editingProfile.badges.length > 0 ? (
+                      editingProfile.badges.map((badge: any, idx: number) => {
+                        const bName = typeof badge === 'string' ? badge : badge.name || 'Badge';
+                        return (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-purple-950/40 text-purple-300 border border-purple-500/30 text-xs font-mono"
+                          >
+                            <span>{bName}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleModalRemoveBadge(idx)}
+                              className="text-purple-400 hover:text-red-400 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span className="text-[11px] font-mono text-slate-500">No skill badges linked yet.</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={modalBadgeText}
+                      onChange={e => setModalBadgeText(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleModalAddBadge();
+                        }
+                      }}
+                      placeholder="Add badge (e.g. AWS DeepRacer, Terraform)..."
+                      className="flex-1 bg-[#0f141c] border border-white/[0.1] rounded px-3 py-1.5 text-xs text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleModalAddBadge}
+                      disabled={!modalBadgeText.trim()}
+                      className="px-3 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 rounded text-xs font-mono font-bold flex items-center gap-1 transition-colors disabled:opacity-40"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ADMIN ACTION: RESET PASSWORD & SET PASSKEY (Requirement 2) */}
+              <div className="p-4 rounded-xl bg-[#080b10] border border-[#ff9900]/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="w-4 h-4 text-[#ff9900]" />
+                    <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                      Admin Security Action: Reset Password & Passkey
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowResetBox(!showResetBox)}
+                    className="text-xs font-mono text-[#ff9900] hover:underline"
+                  >
+                    {showResetBox ? 'Hide Reset Options' : 'Configure New Passkey'}
+                  </button>
+                </div>
+
+                {showResetBox && (
+                  <div className="space-y-3 pt-2 border-t border-white/[0.05]">
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Wipes the user's permanent password in Supabase Auth and assigns this temporary 6-digit passkey. On next login, the user will be forced to authenticate using this passkey and immediately set a new permanent password.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                      <div className="relative flex-1 w-full">
+                        <Lock className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
+                        <input
+                          type="text"
+                          maxLength={6}
+                          value={resetPasskeyVal}
+                          onChange={e => setResetPasskeyVal(e.target.value)}
+                          placeholder="6-digit passkey"
+                          className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg pl-8 pr-3 py-1.5 text-xs text-white font-mono tracking-widest"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setResetPasskeyVal(Math.floor(100000 + Math.random() * 900000).toString())}
+                        className="px-3 py-1.5 rounded bg-white/[0.05] hover:bg-white/[0.1] text-[11px] font-mono text-slate-300 w-full sm:w-auto"
+                      >
+                        Random
+                      </button>
+                      <button
+                        type="button"
+                        disabled={resettingPasskey}
+                        onClick={handleResetMemberPasskey}
+                        className="px-4 py-1.5 rounded-lg bg-[#ff9900] hover:bg-[#e68a00] text-[#080b10] font-bold text-xs font-mono transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 w-full sm:w-auto"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>{resettingPasskey ? 'Resetting...' : 'Reset Passkey'}</span>
+                      </button>
+                    </div>
+
+                    {resetMsg && (
+                      <p className={`text-xs font-mono ${resetMsg.includes('Error') ? 'text-red-400' : 'text-emerald-400 font-bold'}`}>
+                        {resetMsg}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Bottom Actions */}

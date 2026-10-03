@@ -3,7 +3,6 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { AwsLogo } from '@/components/common/AwsLogo';
-import { BuilderBackground } from '@/components/canvas/BuilderBackground';
 
 interface HeroSectionProps {
   title: string;
@@ -12,10 +11,7 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ title, subtitle }) => {
   return (
-    <section id="about" className="relative py-20 md:py-28 px-4 sm:px-6 lg:px-8 border-b border-white/[0.08] overflow-hidden">
-      {/* Official AWS Builder Center Retro Pixel-Art Canvas & Blueprint Grid */}
-      <BuilderBackground />
-
+    <section id="about" className="relative py-20 md:py-28 px-4 sm:px-6 lg:px-8 border-b border-white/[0.08]">
       <div className="relative z-10 max-w-4xl mx-auto">
         {/* Eyebrow with Official AWS Logo */}
         <div className="flex flex-wrap items-center gap-3 mb-6">

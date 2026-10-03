@@ -29,6 +29,11 @@ export default async function FounderPage() {
   let linkedinUrl = "";
   let portfolioUrl = "";
   let headline = "";
+  let division = "";
+  let branch = "";
+  let year = "";
+  let certifications: any[] = [];
+  let badges: any[] = [];
 
   const founderSetting = settings?.find(s => s.key === 'founder_section')?.value;
   const pinnedFounderId = settings?.find(s => s.key === 'pinned_founder_id')?.value;
@@ -50,6 +55,11 @@ export default async function FounderPage() {
       linkedinUrl = profile.linkedin_url || '';
       portfolioUrl = profile.portfolio_url || '';
       headline = profile.headline || '';
+      division = profile.division || '';
+      branch = profile.branch || '';
+      year = profile.year || '';
+      certifications = profile.certifications || [];
+      badges = profile.badges || [];
       if (profile.quote) founderQuote = profile.quote;
     }
   }
@@ -59,7 +69,9 @@ export default async function FounderPage() {
     if (founderSetting.name) founderName = founderSetting.name;
     if (founderSetting.role) founderRole = founderSetting.role;
     if (founderSetting.quote) founderQuote = founderSetting.quote;
-    if (founderSetting.bio) bio = founderSetting.bio;
+    if (founderSetting.bio && typeof founderSetting.bio === 'string' && founderSetting.bio.trim()) {
+      bio = founderSetting.bio.trim();
+    }
   }
 
   return (
@@ -75,6 +87,11 @@ export default async function FounderPage() {
         linkedinUrl={linkedinUrl}
         portfolioUrl={portfolioUrl}
         headline={headline}
+        division={division}
+        branch={branch}
+        year={year}
+        certifications={certifications}
+        badges={badges}
         timeline={founderSetting?.timeline}
       />
     </div>

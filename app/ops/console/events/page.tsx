@@ -117,34 +117,7 @@ export default function EventsManagerPage() {
   const openEditEvent = (evt: any) => {
     setEditingEvent({
       ...evt,
-      banner_templates: (evt.banner_templates && Array.isArray(evt.banner_templates) && evt.banner_templates.length > 0)
-        ? evt.banner_templates
-        : [
-            {
-              id: 'theme-1',
-              name: 'Cyber Neon Pulse',
-              accentColor: '#a855f7',
-              defaultHeadline: "I'm Attending!",
-              badgeText: 'AWS SBG · BUILDER INITIATIVE',
-              imageUrl: evt.thumbnail_url || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1200'
-            },
-            {
-              id: 'theme-2',
-              name: 'AWS re:Invent Dark Edition',
-              accentColor: '#ff9900',
-              defaultHeadline: 'Architecting at SSPU',
-              badgeText: 're:Invent COMMUNITY WATCH PARTY',
-              imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=1200'
-            },
-            {
-              id: 'theme-3',
-              name: 'Terminal Minimalist',
-              accentColor: '#00f0ff',
-              defaultHeadline: 'Building the Cloud',
-              badgeText: 'VERIFIED ATTENDEE PASS',
-              imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1200'
-            }
-          ]
+      banner_templates: Array.isArray(evt.banner_templates) ? evt.banner_templates : []
     });
     setMsg('');
     setIsModalOpen(true);

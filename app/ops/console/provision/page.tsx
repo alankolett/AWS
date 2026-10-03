@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/infrastructure/supabase/client';
-import { createAdminOrMemberUser } from '@/app/actions/admin';
+import { createAdminOrMemberUser, resetUserPasswordToPasskey } from '@/app/actions/admin';
 import { deleteMember } from '@/app/actions/profiles';
 import {
   Shield,
@@ -16,6 +16,8 @@ import {
   Trash2,
   RefreshCw,
   Search,
+  RotateCcw,
+  X,
   ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -26,13 +28,19 @@ export default function ProvisionPage() {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [search, setSearch] = useState('');
 
-  // Form State
+  // Form State for new provision
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'member' | 'admin'>('member');
   const [passkey, setPasskey] = useState('000000');
   const [submitting, setSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Reset Password Modal State
+  const [resetModalUser, setResetModalUser] = useState<any | null>(null);
+  const [resetPasskeyInput, setResetPasskeyInput] = useState('');
+  const [resetting, setResetting] = useState(false);
+  const [resetStatus, setResetStatus] = useState<{ type: 'success' | 'error'; text: string; passkey?: string } | null>(null);
 
   const supabase = createClient();
 
@@ -68,6 +76,11 @@ export default function ProvisionPage() {
     setPasskey(random);
   };
 
+  const handleGenerateResetPasskey = () => {
+    const random = Math.floor(100000 + Math.random() * 900000).toString();
+    setResetPasskeyInput(random);
+  };
+
   const handleProvision = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !passkey) return;
@@ -101,6 +114,40 @@ export default function ProvisionPage() {
     }
   };
 
+  const handleOpenResetModal = (targetUser: any) => {
+    setResetModalUser(targetUser);
+    const random = Math.floor(100000 + Math.random() * 900000).toString();
+    setResetPasskeyInput(random);
+    setResetStatus(null);
+  };
+
+  const handleConfirmReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetModalUser || !resetPasskeyInput) return;
+
+    if (resetPasskeyInput.trim().length !== 6) {
+      setResetStatus({ type: 'error', text: 'Passkey must be exactly 6 characters.' });
+      return;
+    }
+
+    setResetting(true);
+    setResetStatus(null);
+
+    const res = await resetUserPasswordToPasskey(resetModalUser.id, resetPasskeyInput.trim());
+
+    if (res.error) {
+      setResetStatus({ type: 'error', text: res.error });
+    } else {
+      setResetStatus({
+        type: 'success',
+        text: `Password entry deleted and new passkey activated for ${resetModalUser.email}.`,
+        passkey: resetPasskeyInput.trim(),
+      });
+      loadData();
+    }
+    setResetting(false);
+  };
+
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -121,7 +168,7 @@ export default function ProvisionPage() {
         <Shield className="w-12 h-12 text-[#ff9900] mx-auto" />
         <h2 className="text-xl font-bold text-white">Administrator Access Required</h2>
         <p className="text-slate-400 text-xs">
-          Only administrators have access to provision new builder accounts and IAM passkeys.
+          Only administrators have access to provision new builder accounts and reset user passkeys.
         </p>
         <Link
           href="/ops/console/my-profile"
@@ -153,7 +200,7 @@ export default function ProvisionPage() {
             Provision Builder & Admin Accounts
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-            Grant secure passkey-based access to Chapter leads, core teammates, and administrator accounts.
+            Grant secure passkey-based access, manage chapter permissions, and reset user passwords with instant passkeys.
           </p>
         </div>
 
@@ -362,6 +409,17 @@ export default function ProvisionPage() {
 
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {/* RESET PASSWORD / SET PASSKEY BUTTON (Requirement 2) */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenResetModal(p)}
+                          className="px-2 py-1 rounded bg-[#ff9900]/10 hover:bg-[#ff9900]/20 text-[#ff9900] border border-[#ff9900]/30 font-mono text-[11px] transition-colors flex items-center gap-1"
+                          title="Reset Password & Set New Passkey"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Reset Passkey</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => handleCopy(p.email, p.id)}
@@ -392,6 +450,123 @@ export default function ProvisionPage() {
           </table>
         </div>
       </div>
+
+      {/* RESET PASSWORD & SET PASSKEY MODAL */}
+      {resetModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-lg p-6 sm:p-8 rounded-2xl bg-[#0f141c] border border-[#ff9900]/30 shadow-2xl space-y-6 my-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-[#ff9900]" />
+                <h3 className="text-lg font-bold text-white font-sans">
+                  Reset Password & Activate Passkey
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setResetModalUser(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.05]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3.5 rounded-xl bg-[#080b10] border border-white/[0.08] space-y-1 font-mono">
+                <div className="text-slate-400">TARGET ACCOUNT:</div>
+                <div className="text-white font-bold text-sm">{resetModalUser.email}</div>
+                {resetModalUser.full_name && (
+                  <div className="text-slate-300 text-xs">{resetModalUser.full_name}</div>
+                )}
+              </div>
+
+              <p className="text-slate-400 leading-relaxed">
+                Resetting will delete the user's current permanent password in Supabase Auth and assign this temporary 6-digit passkey. The user will be required to authenticate with this passkey upon their next login and establish a new permanent password.
+              </p>
+            </div>
+
+            {resetStatus && (
+              <div
+                className={`p-4 rounded-xl text-xs font-mono space-y-2 border ${
+                  resetStatus.type === 'success'
+                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25'
+                    : 'bg-red-500/10 text-red-300 border-red-500/25'
+                }`}
+              >
+                <div className="flex items-center gap-2 font-bold">
+                  {resetStatus.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                  )}
+                  <span>{resetStatus.text}</span>
+                </div>
+                {resetStatus.passkey && (
+                  <div className="flex items-center justify-between p-2.5 rounded bg-[#080b10] border border-emerald-500/30 text-white font-mono text-sm mt-1">
+                    <span>Passkey: <b>{resetStatus.passkey}</b></span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(resetStatus.passkey!, 'reset-key')}
+                      className="text-xs text-emerald-400 hover:underline flex items-center gap-1"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{copiedId === 'reset-key' ? 'Copied!' : 'Copy'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmReset} className="space-y-4 pt-1">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-mono text-slate-300 font-semibold">
+                    New 6-Digit Passkey
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateResetPasskey}
+                    className="text-[10px] font-mono text-[#00f0ff] hover:underline"
+                  >
+                    Generate Random
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={resetPasskeyInput}
+                    onChange={(e) => setResetPasskeyInput(e.target.value)}
+                    placeholder="e.g. 849201"
+                    className="w-full bg-[#080b10] border border-white/[0.15] rounded-lg pl-9 pr-3 py-2.5 text-sm font-mono text-white tracking-widest focus:outline-none focus:border-[#ff9900]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
+                <button
+                  type="button"
+                  onClick={() => setResetModalUser(null)}
+                  className="px-4 py-2 rounded-lg border border-white/[0.1] text-xs font-mono text-slate-300 hover:bg-white/[0.05]"
+                >
+                  Close
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={resetting}
+                  className="px-5 py-2.5 bg-[#ff9900] hover:bg-[#e68a00] text-[#080b10] font-bold text-xs font-mono rounded-lg transition-colors flex items-center gap-1.5 shadow-md disabled:opacity-50"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>{resetting ? 'Resetting Password...' : 'Reset Password & Activate Passkey'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

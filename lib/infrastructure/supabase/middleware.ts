@@ -32,18 +32,17 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   // Protect admin routes
-  if (
-    request.nextUrl.pathname.startsWith('/ops/console') &&
-    !user
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/ops/auth'
-    return NextResponse.redirect(url)
+  if (request.nextUrl.pathname.startsWith('/ops/console')) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/ops/auth'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse

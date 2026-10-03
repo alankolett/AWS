@@ -2,6 +2,7 @@ import React from 'react';
 import { HeroSection } from '@/components/features/HeroSection';
 import { UpcomingEvents } from '@/components/features/UpcomingEvents';
 import { FounderStory } from '@/components/features/FounderStory';
+import { BuilderBackground } from '@/components/canvas/BuilderBackground';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
@@ -38,6 +39,11 @@ export default async function HomePage() {
   let portfolioUrl = "";
   let headline = "";
   let founderTimeline: any[] | undefined = undefined;
+  let division = "";
+  let branch = "";
+  let year = "";
+  let certifications: any[] = [];
+  let badges: any[] = [];
 
   let teamPhotoUrl = "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1600";
   let teamPhotoCaption = "AWS Student Builder Group @ SSPU · Student Engineers & Chapter Collective";
@@ -63,7 +69,9 @@ export default async function HomePage() {
       if (founderSetting.name) founderName = founderSetting.name;
       if (founderSetting.role) founderRole = founderSetting.role;
       if (founderSetting.quote) founderQuote = founderSetting.quote;
-      if (founderSetting.bio) bio = founderSetting.bio;
+      if (founderSetting.bio && typeof founderSetting.bio === 'string' && founderSetting.bio.trim()) {
+        bio = founderSetting.bio.trim();
+      }
       if (founderSetting.timeline) founderTimeline = founderSetting.timeline;
     }
 
@@ -86,73 +94,90 @@ export default async function HomePage() {
       founderName = profile.full_name || founderName;
       founderRole = profile.headline || (profile.role === 'admin' ? 'Founder & Lead' : 'Core Member');
       avatarUrl = profile.avatar_url || '';
-      bio = profile.bio || '';
+      if (!bio && profile.bio) bio = profile.bio;
       builderId = profile.builder_id || '';
       githubUrl = profile.github_url || '';
       linkedinUrl = profile.linkedin_url || '';
       portfolioUrl = profile.portfolio_url || '';
       headline = profile.headline || '';
-      if (profile.quote) founderQuote = profile.quote;
+      division = profile.division || '';
+      branch = profile.branch || '';
+      year = profile.year || '';
+      certifications = profile.certifications || [];
+      badges = profile.badges || [];
+      if (profile.quote && founderQuote === "Cloud architectures shape the future. Let's build it.") {
+        founderQuote = profile.quote;
+      }
     }
   }
 
   return (
-    <div className="flex flex-col w-full">
-      <HeroSection title={heroTitle} subtitle={heroSubtitle} />
+    <div className="relative flex flex-col w-full min-h-screen overflow-hidden">
+      {/* Full-Page Official Blueprint Grid & 8-Bit Pixel Star Canvas */}
+      <BuilderBackground />
 
-      {/* Full Size Team Photo Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 border-b border-white/[0.08]">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-white/[0.08]">
-            <div>
-              <div className="text-xs font-mono text-[#ff9900] tracking-wider uppercase mb-1 font-semibold">
-                // CHAPTER SQUAD
+      <div className="relative z-10 flex flex-col w-full">
+        <HeroSection title={heroTitle} subtitle={heroSubtitle} />
+
+        {/* Full Size Team Photo Section */}
+        <section className="py-20 px-4 sm:px-6 lg:px-8 border-b border-white/[0.08]">
+          <div className="max-w-6xl mx-auto space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-white/[0.08]">
+              <div>
+                <div className="text-xs font-mono text-[#ff9900] tracking-wider uppercase mb-1 font-semibold">
+                  // CHAPTER SQUAD
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white font-sans tracking-tight">
+                  Our Chapter Collective
+                </h2>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white font-sans tracking-tight">
-                Our Chapter Collective
-              </h2>
+              <div className="text-xs font-mono text-slate-400">
+                Symbiosis Skills & Professional University
+              </div>
             </div>
-            <div className="text-xs font-mono text-slate-400">
-              Symbiosis Skills & Professional University
-            </div>
-          </div>
 
-          <div className="relative w-full aspect-[21/9] sm:aspect-[24/10] rounded-2xl overflow-hidden border border-white/[0.12] bg-[#080b10] shadow-2xl group">
-            <img
-              src={teamPhotoUrl}
-              alt="AWS Student Builder Group Team"
-              className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#080b10] via-transparent to-transparent opacity-85" />
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs font-mono text-slate-300">
-              <span className="font-medium text-white">{teamPhotoCaption}</span>
-              <span className="text-[#ff9900] hidden sm:block">AWS STUDENT BUILDER GROUP</span>
+            <div className="relative w-full aspect-[21/9] sm:aspect-[24/10] rounded-2xl overflow-hidden border border-white/[0.12] bg-[#080b10] shadow-2xl group">
+              <img
+                src={teamPhotoUrl}
+                alt="AWS Student Builder Group Team"
+                className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-700"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#080b10] via-transparent to-transparent opacity-85" />
+              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs font-mono text-slate-300">
+                <span className="font-medium text-white">{teamPhotoCaption}</span>
+                <span className="text-[#ff9900] hidden sm:block">AWS STUDENT BUILDER GROUP</span>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Featured / Pinned event spotlight (Only displayed when an event is explicitly pinned) */}
-      {pinnedEventId && typeof pinnedEventId === 'string' && pinnedEventId.trim().length > 0 ? (
-        <UpcomingEvents pinnedEventId={pinnedEventId.trim()} />
-      ) : null}
+        {/* Featured / Pinned event spotlight (Only displayed when an event is explicitly pinned) */}
+        {pinnedEventId && typeof pinnedEventId === 'string' && pinnedEventId.trim().length > 0 ? (
+          <UpcomingEvents pinnedEventId={pinnedEventId.trim()} />
+        ) : null}
 
-      {/* Pinned Founder Profile & Story (Only displayed when a founder is explicitly pinned) */}
-      {pinnedFounderId && typeof pinnedFounderId === 'string' && pinnedFounderId.trim().length > 0 ? (
-        <FounderStory
-          name={founderName}
-          role={founderRole}
-          quote={founderQuote}
-          avatarUrl={avatarUrl}
-          bio={bio}
-          builderId={builderId}
-          githubUrl={githubUrl}
-          linkedinUrl={linkedinUrl}
-          portfolioUrl={portfolioUrl}
-          headline={headline}
-          timeline={founderTimeline}
-        />
-      ) : null}
+        {/* Pinned Founder Profile & Story (Only displayed when a founder is explicitly pinned) */}
+        {pinnedFounderId && typeof pinnedFounderId === 'string' && pinnedFounderId.trim().length > 0 ? (
+          <FounderStory
+            name={founderName}
+            role={founderRole}
+            quote={founderQuote}
+            avatarUrl={avatarUrl}
+            bio={bio}
+            builderId={builderId}
+            githubUrl={githubUrl}
+            linkedinUrl={linkedinUrl}
+            portfolioUrl={portfolioUrl}
+            headline={headline}
+            division={division}
+            branch={branch}
+            year={year}
+            certifications={certifications}
+            badges={badges}
+            timeline={founderTimeline}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }

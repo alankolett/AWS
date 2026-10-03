@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
@@ -18,10 +19,23 @@ function getSupabase() {
   );
 }
 
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
+}
+
 async function verifyAdmin() {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { authorized: false, error: 'Unauthorized: Please log in.' };
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { authorized: false, error: 'Unauthorized: Please log in.' };
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -62,41 +76,13 @@ export async function createEvent(data: {
   const auth = await verifyAdmin();
   if (!auth.authorized) return { error: auth.error };
 
-  const supabase = getSupabase();
   const slug = data.id?.trim() || `evt-${data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'session'}-${Date.now().toString(36)}`;
 
   const totalSeats = data.total_seats || 60;
   const seatsRemaining = data.seats_remaining !== undefined ? data.seats_remaining : totalSeats;
 
-  // Default 3 banner templates if none provided
-  const bannerTemplates = data.banner_templates && data.banner_templates.length === 3
-    ? data.banner_templates
-    : [
-        {
-          id: 'theme-cyber',
-          name: 'Cyber Neon Pulse',
-          imageUrl: data.thumbnail_url || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1200',
-          accentColor: '#a855f7',
-          defaultHeadline: "I'm Attending!",
-          badgeText: 'AWS SBG · BUILDER INITIATIVE'
-        },
-        {
-          id: 'theme-reinvent',
-          name: 'AWS re:Invent Dark Edition',
-          imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=1200',
-          accentColor: '#ff9900',
-          defaultHeadline: "Architecting at SSPU",
-          badgeText: 're:Invent COMMUNITY WATCH PARTY'
-        },
-        {
-          id: 'theme-mono',
-          name: 'Terminal Minimalist',
-          imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1200',
-          accentColor: '#00f0ff',
-          defaultHeadline: "Building the Cloud",
-          badgeText: 'VERIFIED ATTENDEE PASS'
-        }
-      ];
+  // Preserve whatever templates admin declared, or empty array if none
+  const bannerTemplates = Array.isArray(data.banner_templates) ? data.banner_templates : [];
 
   const payload = {
     id: slug,
@@ -123,7 +109,8 @@ export async function createEvent(data: {
     updated_at: new Date().toISOString()
   };
 
-  const { data: created, error } = await supabase
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data: created, error } = await supabaseAdmin
     .from('events')
     .insert(payload)
     .select()
@@ -164,8 +151,8 @@ export async function updateEvent(id: string, data: Partial<{
   const auth = await verifyAdmin();
   if (!auth.authorized) return { error: auth.error };
 
-  const supabase = getSupabase();
-  const { data: updated, error } = await supabase
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data: updated, error } = await supabaseAdmin
     .from('events')
     .update({
       ...data,
@@ -189,8 +176,8 @@ export async function deleteEvent(id: string) {
   const auth = await verifyAdmin();
   if (!auth.authorized) return { error: auth.error };
 
-  const supabase = getSupabase();
-  const { error } = await supabase
+  const supabaseAdmin = getSupabaseAdmin();
+  const { error } = await supabaseAdmin
     .from('events')
     .delete()
     .eq('id', id);

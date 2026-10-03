@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Download, Upload, RefreshCw, Sparkles, Layers } from 'lucide-react';
+import { Download, Upload, Trash2, Sparkles, Layers, Image as ImageIcon } from 'lucide-react';
 import { AwsLogo } from '@/components/common/AwsLogo';
 
 export interface BannerTheme {
@@ -21,7 +21,7 @@ interface BannerGeneratorProps {
   themeTemplates?: BannerTheme[];
 }
 
-const DEFAULT_THEMES: BannerTheme[] = [
+const FALLBACK_DEFAULT_THEMES: BannerTheme[] = [
   {
     id: 'theme-cyber',
     name: 'Cyber Neon Pulse',
@@ -29,37 +29,24 @@ const DEFAULT_THEMES: BannerTheme[] = [
     defaultHeadline: "I'm Attending!",
     badgeText: 'AWS SBG · BUILDER INITIATIVE',
     imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1200'
-  },
-  {
-    id: 'theme-reinvent',
-    name: 'AWS re:Invent Dark Edition',
-    accentColor: '#ff9900',
-    defaultHeadline: 'Architecting at SSPU',
-    badgeText: 're:Invent COMMUNITY WATCH PARTY',
-    imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=1200'
-  },
-  {
-    id: 'theme-mono',
-    name: 'Terminal Minimalist',
-    accentColor: '#00f0ff',
-    defaultHeadline: 'Building the Cloud',
-    badgeText: 'VERIFIED ATTENDEE PASS',
-    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1200'
   }
-];
-
-const PRESET_AVATARS = [
-  { name: 'Student Builder 1', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Student Builder 2', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Student Builder 3', url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=600' },
 ];
 
 const BRANCH_OPTIONS = [
   'B.Tech CSIT · Class of 2026',
+  'B.Tech CSIT · Class of 2027',
+  'B.Tech CSIT · Class of 2028',
   'B.Tech CSIT (Cybersecurity) · Class of 2026',
+  'B.Tech CSIT (Cybersecurity) · Class of 2027',
+  'B.Tech AI & Data Science · Class of 2026',
   'B.Tech AI & Data Science · Class of 2027',
+  'B.Tech AI & Data Science · Class of 2028',
   'B.Tech Software Engineering · Class of 2025',
+  'B.Tech Software Engineering · Class of 2026',
+  'B.Tech Mechatronics & Robotics · Class of 2026',
   'M.Tech Cloud Computing · Class of 2026',
+  'M.Tech AI & Machine Learning · Class of 2026',
+  'BCA / MCA · Class of 2026',
 ];
 
 export default function BannerGenerator({
@@ -70,17 +57,24 @@ export default function BannerGenerator({
   themeTemplates
 }: BannerGeneratorProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const themes = (themeTemplates && themeTemplates.length > 0) ? themeTemplates : DEFAULT_THEMES;
+  // If themeTemplates is passed from the event (even if 1 or 2 styles), respect it strictly!
+  const themes = (themeTemplates && Array.isArray(themeTemplates) && themeTemplates.length > 0)
+    ? themeTemplates
+    : FALLBACK_DEFAULT_THEMES;
+
   const [selectedThemeIndex, setSelectedThemeIndex] = useState(0);
 
-  const [name, setName] = useState('Student Builder');
-  const [branchYear, setBranchYear] = useState('B.Tech CSIT · Class of 2026');
-  const [photoDataUrl, setPhotoDataUrl] = useState(PRESET_AVATARS[0].url);
+  // User form data - No default avatars; starts empty
+  const [name, setName] = useState('');
+  const [branchYear, setBranchYear] = useState(BRANCH_OPTIONS[0]);
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [customBranch, setCustomBranch] = useState(false);
 
-  const currentTheme = themes[selectedThemeIndex] || themes[0];
+  // Clamp selected theme index if themes changed
+  const validIndex = selectedThemeIndex < themes.length ? selectedThemeIndex : 0;
+  const currentTheme = themes[validIndex] || themes[0] || FALLBACK_DEFAULT_THEMES[0];
   const accentColor = currentTheme.accentColor || '#a855f7';
   const headline = currentTheme.defaultHeadline || "I'm Attending!";
   const badgeText = currentTheme.badgeText || 'AWS SBG · BUILDER INITIATIVE';
@@ -182,28 +176,31 @@ export default function BannerGenerator({
       ctx.fill();
       ctx.stroke();
 
-      // Accent indicator pill inside event box
-      ctx.fillStyle = accentColor;
-      ctx.fillRect(115, eventBoxY + 35, 4, 32);
-
-      ctx.fillStyle = accentColor;
-      ctx.font = 'bold 15px monospace';
-      ctx.fillText('OFFICIAL CHAPTER EVENT', 130, eventBoxY + 57);
-
-      // Event Title (Wrap if too long)
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 36px Inter, sans-serif';
-      const truncatedTitle = eventTitle.length > 48 ? eventTitle.substring(0, 48) + '...' : eventTitle;
-      ctx.fillText(truncatedTitle, 115, eventBoxY + 125);
-
       // Event Metadata
+      ctx.fillStyle = accentColor;
+      ctx.font = 'bold 14px monospace';
+      ctx.fillText('OFFICIAL CHAPTER EVENT', 115, eventBoxY + 45);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 32px Inter, sans-serif';
+      // Truncate title if longer than 40 chars
+      const displayTitle = eventTitle.length > 42 ? eventTitle.substring(0, 42) + '...' : eventTitle;
+      ctx.fillText(displayTitle, 115, eventBoxY + 90);
+
+      // Divider line
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.beginPath();
+      ctx.moveTo(115, eventBoxY + 120);
+      ctx.lineTo(width - 115, eventBoxY + 120);
+      ctx.stroke();
+
       ctx.fillStyle = '#cbd5e1';
       ctx.font = '500 20px Inter, sans-serif';
-      ctx.fillText(`📅 ${eventDate} · ${eventTime}`, 115, eventBoxY + 180);
+      ctx.fillText(`📅 ${eventDate} · ${eventTime}`, 115, eventBoxY + 165);
 
       ctx.fillStyle = '#94a3b8';
       ctx.font = '18px Inter, sans-serif';
-      ctx.fillText(`📍 ${location}`, 115, eventBoxY + 215);
+      ctx.fillText(`📍 ${location}`, 115, eventBoxY + 205);
 
       // 7. Attendee Profile Section
       const photoSize = 220;
@@ -222,13 +219,15 @@ export default function BannerGenerator({
       if (userImg) {
         ctx.drawImage(userImg, photoX, photoY, photoSize, photoSize);
       } else {
-        ctx.fillStyle = '#1e293b';
+        // High-tech placeholder if user hasn't uploaded a photo
+        ctx.fillStyle = '#0f141c';
         ctx.fillRect(photoX, photoY, photoSize, photoSize);
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = accentColor;
         ctx.font = 'bold 64px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(name.charAt(0) || 'B', centerX, centerY);
+        const initial = name.trim() ? name.trim().charAt(0).toUpperCase() : '⚡';
+        ctx.fillText(initial, centerX, centerY);
       }
       ctx.restore();
 
@@ -246,7 +245,7 @@ export default function BannerGenerator({
       ctx.font = '900 48px Inter, sans-serif';
       ctx.textAlign = 'start';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(name || 'Student Builder', 335, 680);
+      ctx.fillText(name.trim() || 'Student Builder', 335, 680);
 
       ctx.fillStyle = accentColor;
       ctx.font = 'bold 22px monospace';
@@ -323,6 +322,7 @@ export default function BannerGenerator({
     drawBanner();
   }, [drawBanner]);
 
+  // Temporary in-memory client-side upload only (Zero Supabase storage bottlenecks)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -336,16 +336,30 @@ export default function BannerGenerator({
     }
   };
 
+  // Clear all data button and clear after download
+  const handleClearAll = () => {
+    setName('');
+    setBranchYear(BRANCH_OPTIONS[0]);
+    setPhotoDataUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleDownload = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     setIsExporting(true);
+
     setTimeout(() => {
       try {
         const link = document.createElement('a');
-        link.download = `AWS-SBG-Attending-${name.replace(/\s+/g, '-') || 'Student'}.png`;
+        link.download = `AWS-SBG-Attending-${name.trim().replace(/\s+/g, '-') || 'Student'}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
+
+        // Clear all data once downloaded as requested
+        handleClearAll();
       } catch (err) {
         console.error('Canvas export error:', err);
       } finally {
@@ -365,15 +379,15 @@ export default function BannerGenerator({
           "I'm Attending" Event Banner Studio
         </h3>
         <p className="text-sm text-slate-400 mt-1 max-w-2xl font-sans">
-          Select from the 3 curated themes, upload your photo, and download an official 1080×1080 attendance graphic for LinkedIn, Instagram & X.
+          Select from the active event poster styles declared by chapter admins, upload your headshot, and generate your 1080×1080 attendance graphic.
         </p>
       </div>
 
-      {/* 3 Theme Selector Cards */}
+      {/* Theme Selector Cards */}
       <div className="space-y-2">
         <label className="block text-xs font-mono text-slate-300 font-semibold uppercase tracking-wider flex items-center gap-1.5">
           <Layers className="w-3.5 h-3.5 text-[#ff9900]" />
-          <span>Select Poster Theme ({themes.length} Available)</span>
+          <span>Active Poster Styles ({themes.length})</span>
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {themes.map((theme, idx) => (
@@ -382,14 +396,14 @@ export default function BannerGenerator({
               type="button"
               onClick={() => setSelectedThemeIndex(idx)}
               className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
-                selectedThemeIndex === idx
+                validIndex === idx
                   ? 'bg-white/[0.08] border-white shadow-lg'
                   : 'bg-[#0f141c] border-white/[0.08] hover:border-white/[0.2] opacity-75'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-mono font-bold text-white">
-                  Theme {idx + 1}
+                  Style {idx + 1}
                 </span>
                 <span
                   className="w-3.5 h-3.5 rounded-full border border-white/20"
@@ -431,117 +445,93 @@ export default function BannerGenerator({
             />
           </div>
 
-          {/* Academic Branch Selector */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-mono text-slate-300 font-medium">
-                Branch / Year
-              </label>
-              <button
-                type="button"
-                onClick={() => setCustomBranch(!customBranch)}
-                className="text-[11px] font-mono text-[#a855f7] hover:underline"
-              >
-                {customBranch ? 'Use Preset List' : 'Custom Input'}
-              </button>
-            </div>
-
-            {customBranch ? (
-              <input
-                type="text"
-                value={branchYear}
-                onChange={(e) => setBranchYear(e.target.value)}
-                className="w-full h-10 px-3 rounded-lg bg-[#0f141c] border border-white/[0.08] text-sm text-white font-mono placeholder-slate-600 focus:border-[#a855f7] focus:outline-none"
-                placeholder="e.g. B.Tech CSIT · Class of 2026"
-              />
-            ) : (
-              <select
-                value={branchYear}
-                onChange={(e) => setBranchYear(e.target.value)}
-                className="w-full h-10 px-3 rounded-lg bg-[#0f141c] border border-white/[0.08] text-xs text-white font-mono focus:border-[#a855f7] focus:outline-none"
-              >
-                {BRANCH_OPTIONS.map((branch) => (
-                  <option key={branch} value={branch} className="bg-[#0f141c] text-white">
-                    {branch}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {/* Photo Upload Zone */}
+          {/* Academic Branch Selector (Dropdown Only - No Custom Input) */}
           <div>
             <label className="block text-xs font-mono text-slate-300 mb-1.5 font-medium">
-              Upload Your Photo
+              Branch & Graduation Class
             </label>
-            <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-white/[0.15] hover:border-[#a855f7] rounded-lg cursor-pointer bg-[#0f141c]/50 hover:bg-[#0f141c] transition-all">
-              <Upload className="w-4 h-4 text-[#a855f7] mb-1" />
-              <span className="text-xs font-mono text-slate-300 font-medium">Click to Upload Headshot</span>
-              <span className="text-[10px] text-slate-500 font-mono">JPG, PNG, WebP</span>
-              <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-            </label>
-          </div>
-
-          {/* Preset Avatars */}
-          <div>
-            <span className="text-[11px] font-mono text-slate-400 block mb-2 font-medium">
-              Or pick sample avatar:
-            </span>
-            <div className="flex items-center gap-2">
-              {PRESET_AVATARS.map((avatar) => (
-                <button
-                  key={avatar.name}
-                  type="button"
-                  onClick={() => setPhotoDataUrl(avatar.url)}
-                  className={`relative rounded-lg overflow-hidden border-2 transition-all ${
-                    photoDataUrl === avatar.url
-                      ? 'border-[#ff9900] scale-105 shadow-sm'
-                      : 'border-white/[0.1] hover:border-slate-400 opacity-70 hover:opacity-100'
-                  }`}
-                  title={avatar.name}
-                >
-                  <img src={avatar.url} alt={avatar.name} className="w-10 h-10 object-cover" />
-                </button>
+            <select
+              value={branchYear}
+              onChange={(e) => setBranchYear(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg bg-[#0f141c] border border-white/[0.08] text-xs text-white font-mono focus:border-[#a855f7] focus:outline-none"
+            >
+              {BRANCH_OPTIONS.map((branch) => (
+                <option key={branch} value={branch} className="bg-[#0f141c] text-white">
+                  {branch}
+                </option>
               ))}
-            </div>
+            </select>
+            <p className="text-[10px] text-slate-500 font-mono mt-1">
+              Select your registered academic specialization at SSPU.
+            </p>
           </div>
 
-          {/* Export PNG Button */}
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={isExporting}
-            className="w-full h-11 rounded-lg bg-white hover:bg-slate-100 text-[#080b10] font-bold font-sans text-xs tracking-tight flex items-center justify-center gap-2 transition-colors disabled:opacity-50 shadow-md"
-          >
-            <Download className="w-4 h-4" />
-            <span>{isExporting ? 'Generating High-DPI PNG...' : 'Download Attendee Poster (.PNG)'}</span>
-          </button>
-        </div>
+          {/* Temporary Photo Upload Zone (In-memory only, no DB/Storage bottleneck) */}
+          <div>
+            <label className="block text-xs font-mono text-slate-300 mb-1.5 font-medium">
+              Upload Headshot Photo
+            </label>
+            <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-white/[0.15] hover:border-[#a855f7] rounded-lg cursor-pointer bg-[#0f141c]/50 hover:bg-[#0f141c] transition-all relative overflow-hidden">
+              {photoDataUrl ? (
+                <div className="flex items-center gap-3 p-2 w-full h-full justify-center">
+                  <img
+                    src={photoDataUrl}
+                    alt="Uploaded headshot preview"
+                    className="w-14 h-14 rounded-full object-cover border-2 border-[#a855f7]"
+                  />
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs text-emerald-400 font-mono font-bold">Photo Loaded (Local)</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Click to replace photo</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 text-[#a855f7] mb-1" />
+                  <span className="text-xs font-mono text-slate-300 font-medium">Click to Upload Headshot</span>
+                  <span className="text-[10px] text-slate-500 font-mono">Temporary browser memory (JPG, PNG)</span>
+                </>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
 
-        {/* Right Side: Live Canvas Preview */}
-        <div className="lg:col-span-7 flex flex-col items-center">
-          <div className="w-full flex items-center justify-between mb-3 px-1">
-            <span className="text-xs font-mono text-slate-400 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              Live 1080×1080 Viewport
-            </span>
+          {/* Action Buttons: Download + Clear All Data */}
+          <div className="space-y-2 pt-2">
             <button
               type="button"
-              onClick={drawBanner}
-              className="text-xs font-mono text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors"
+              onClick={handleDownload}
+              disabled={isExporting}
+              className="w-full h-11 rounded-lg bg-white hover:bg-slate-100 text-[#080b10] font-bold font-sans text-xs tracking-tight flex items-center justify-center gap-2 transition-colors disabled:opacity-50 shadow-md"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Redraw Canvas</span>
+              <Download className="w-4 h-4" />
+              <span>{isExporting ? 'Generating High-DPI PNG...' : 'Download Attendee Poster (.PNG)'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="w-full h-9 rounded-lg border border-red-500/25 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-mono text-xs flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear All Data</span>
             </button>
           </div>
+        </div>
 
-          <div className="w-full max-w-[480px] aspect-square rounded-2xl overflow-hidden border border-white/[0.12] bg-[#080b10] shadow-2xl">
+        {/* Right Side: Live Poster Canvas Preview */}
+        <div className="lg:col-span-7 flex flex-col items-center">
+          <div className="relative w-full max-w-lg aspect-square rounded-2xl overflow-hidden border border-white/[0.1] shadow-2xl bg-[#080b10]">
             <canvas ref={canvasRef} className="w-full h-full object-contain" />
           </div>
-
-          <div className="mt-3.5 text-center text-xs font-mono text-slate-500">
-            Export resolution: 1080 × 1080 PNG · Optimized for LinkedIn, X & Instagram
-          </div>
+          <span className="text-[11px] font-mono text-slate-500 mt-3 text-center">
+            Square 1:1 format (1080×1080) rendered natively via HTML5 2D Canvas.
+          </span>
         </div>
       </div>
     </div>

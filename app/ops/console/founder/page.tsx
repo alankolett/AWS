@@ -226,6 +226,19 @@ export default function FounderConfigPage() {
               />
             </div>
           </div>
+
+          <div>
+            <label className="block text-xs font-mono text-slate-300 mb-1.5 font-medium">
+              About Founder / Biography Narrative (Leave blank to inherit pinned profile's bio)
+            </label>
+            <textarea
+              rows={4}
+              value={founderBioOverride}
+              onChange={e => setFounderBioOverride(e.target.value)}
+              placeholder="Detailed narrative about the chapter founder, mission, and background..."
+              className="w-full bg-[#080b10] border border-white/[0.1] rounded-lg p-3 text-xs text-white focus:border-[#a855f7] focus:outline-none"
+            />
+          </div>
         </div>
 
         {/* Section 2: Chapter Origin Timeline Editor (Requirement 2) */}

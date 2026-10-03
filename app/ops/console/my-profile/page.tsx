@@ -19,8 +19,26 @@ import {
   Linkedin,
   Globe,
   Quote,
+  Award,
+  ShieldCheck,
+  Plus,
+  Trash2,
+  X,
+  Tag,
 } from 'lucide-react';
 import Link from 'next/link';
+
+const AWS_CERT_PRESETS = [
+  'AWS Certified Cloud Practitioner',
+  'AWS Certified Solutions Architect – Associate',
+  'AWS Certified Developer – Associate',
+  'AWS Certified SysOps Administrator – Associate',
+  'AWS Certified Solutions Architect – Professional',
+  'AWS Certified DevOps Engineer – Professional',
+  'AWS Certified Security – Specialty',
+  'AWS Certified Machine Learning – Specialty',
+  'AWS Certified Data Engineer – Associate',
+];
 
 export default function MyProfilePage() {
   const [profile, setProfile] = useState<any>(null);
@@ -28,6 +46,12 @@ export default function MyProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Certifications & Badges input states
+  const [newCertTitle, setNewCertTitle] = useState('');
+  const [newCertIssuer, setNewCertIssuer] = useState('Amazon Web Services (AWS)');
+  const [newCertId, setNewCertId] = useState('');
+  const [newBadgeText, setNewBadgeText] = useState('');
 
   const supabase = createClient();
 
@@ -48,7 +72,11 @@ export default function MyProfilePage() {
       .select('*')
       .order('order_index', { ascending: true });
 
-    setProfile(p || {});
+    setProfile({
+      ...(p || {}),
+      certifications: Array.isArray(p?.certifications) ? p.certifications : [],
+      badges: Array.isArray(p?.badges) ? p.badges : [],
+    });
     setDomains(secs || []);
     setLoading(false);
   };
@@ -56,6 +84,41 @@ export default function MyProfilePage() {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  const handleAddCert = () => {
+    if (!newCertTitle.trim()) return;
+    const current = Array.isArray(profile.certifications) ? [...profile.certifications] : [];
+    const newCert = {
+      name: newCertTitle.trim(),
+      issuer: newCertIssuer.trim() || 'Amazon Web Services (AWS)',
+      credential_id: newCertId.trim() || undefined,
+    };
+    setProfile({ ...profile, certifications: [...current, newCert] });
+    setNewCertTitle('');
+    setNewCertId('');
+  };
+
+  const handleRemoveCert = (index: number) => {
+    const current = [...(profile.certifications || [])];
+    current.splice(index, 1);
+    setProfile({ ...profile, certifications: current });
+  };
+
+  const handleAddBadge = () => {
+    if (!newBadgeText.trim()) return;
+    const current = Array.isArray(profile.badges) ? [...profile.badges] : [];
+    const val = newBadgeText.trim();
+    if (!current.includes(val)) {
+      setProfile({ ...profile, badges: [...current, val] });
+    }
+    setNewBadgeText('');
+  };
+
+  const handleRemoveBadge = (index: number) => {
+    const current = [...(profile.badges || [])];
+    current.splice(index, 1);
+    setProfile({ ...profile, badges: current });
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,12 +142,14 @@ export default function MyProfilePage() {
       github_url: profile.github_url,
       portfolio_url: profile.portfolio_url,
       team_section_id: profile.team_section_id || null,
+      certifications: profile.certifications || [],
+      badges: profile.badges || [],
     });
 
     if (res.error) {
       setStatusMsg({ type: 'error', text: res.error });
     } else {
-      setStatusMsg({ type: 'success', text: 'Your builder profile was successfully updated!' });
+      setStatusMsg({ type: 'success', text: 'Your builder profile and credentials were successfully updated!' });
     }
     setSaving(false);
   };
@@ -353,7 +418,227 @@ export default function MyProfilePage() {
           </div>
         </div>
 
-        {/* SECTION 4: SOCIAL LINKS */}
+        {/* SECTION 4: CERTIFICATIONS & CREDENTIALS */}
+        <div className="p-6 sm:p-8 rounded-2xl bg-[#0f141c] border border-white/[0.08] shadow-xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.05]">
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-[#ff9900]" />
+              <h2 className="text-base font-bold text-white font-sans">
+                Certifications & Badges
+              </h2>
+            </div>
+            <span className="text-[11px] font-mono text-slate-400">
+              Visible on your public builder card and personal portfolio page
+            </span>
+          </div>
+
+          {/* Part A: AWS Certifications */}
+          <div className="space-y-4">
+            <label className="block text-xs font-mono text-slate-300 font-semibold flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#ff9900]" />
+              <span>Official Cloud Certifications</span>
+            </label>
+
+            {/* Existing Certifications List */}
+            {profile.certifications && profile.certifications.length > 0 ? (
+              <div className="space-y-2.5">
+                {profile.certifications.map((cert: any, idx: number) => {
+                  const title = typeof cert === 'string' ? cert : cert.name || 'Certification';
+                  const issuer = typeof cert === 'object' && cert.issuer ? cert.issuer : null;
+                  const credId = typeof cert === 'object' && cert.credential_id ? cert.credential_id : null;
+
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3.5 rounded-xl bg-[#080b10] border border-white/[0.08] hover:border-white/[0.15] transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-[#ff9900]/10 border border-[#ff9900]/20 flex items-center justify-center shrink-0">
+                          <ShieldCheck className="w-4 h-4 text-[#ff9900]" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs sm:text-sm font-semibold text-white truncate">
+                            {title}
+                          </div>
+                          {(issuer || credId) && (
+                            <div className="text-[11px] font-mono text-slate-400 truncate">
+                              {issuer || 'AWS'} {credId ? `· ID: ${credId}` : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCert(idx)}
+                        className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors shrink-0 ml-3"
+                        title="Remove Certification"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-[#080b10]/60 border border-dashed border-white/[0.08] text-center text-xs font-mono text-slate-500">
+                No certifications added yet. Select from common AWS credentials below or enter a custom certification.
+              </div>
+            )}
+
+            {/* Add New Certification Form */}
+            <div className="p-4 rounded-xl bg-[#080b10] border border-white/[0.06] space-y-3">
+              <div className="text-xs font-mono text-slate-400 font-medium">Add New Certification:</div>
+              
+              {/* Preset Selector */}
+              <div>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setNewCertTitle(e.target.value);
+                      setNewCertIssuer('Amazon Web Services (AWS)');
+                    }
+                  }}
+                  className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-slate-300 font-mono focus:outline-none focus:border-[#ff9900]"
+                >
+                  <option value="">-- Quick Select from AWS Certifications --</option>
+                  {AWS_CERT_PRESETS.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <div className="sm:col-span-5">
+                  <input
+                    type="text"
+                    value={newCertTitle}
+                    onChange={(e) => setNewCertTitle(e.target.value)}
+                    placeholder="Certification Title (e.g. AWS Certified Developer)"
+                    className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#ff9900]"
+                  />
+                </div>
+                <div className="sm:col-span-3">
+                  <input
+                    type="text"
+                    value={newCertIssuer}
+                    onChange={(e) => setNewCertIssuer(e.target.value)}
+                    placeholder="Issuer (e.g. AWS)"
+                    className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#ff9900]"
+                  />
+                </div>
+                <div className="sm:col-span-4">
+                  <input
+                    type="text"
+                    value={newCertId}
+                    onChange={(e) => setNewCertId(e.target.value)}
+                    placeholder="Credential ID or URL (optional)"
+                    className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-3 py-2 text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-[#ff9900]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handleAddCert}
+                  disabled={!newCertTitle.trim()}
+                  className="px-4 py-2 bg-[#ff9900]/20 hover:bg-[#ff9900]/30 text-[#ff9900] border border-[#ff9900]/40 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Certification</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Part B: Skill Badges & Technical Credentials */}
+          <div className="space-y-3 pt-4 border-t border-white/[0.05]">
+            <label className="block text-xs font-mono text-slate-300 font-semibold flex items-center gap-2">
+              <Tag className="w-4 h-4 text-[#a855f7]" />
+              <span>Skill Badges & Technical Specializations</span>
+            </label>
+
+            {/* Badges Chips */}
+            <div className="flex flex-wrap gap-2 min-h-[36px] p-3 rounded-xl bg-[#080b10] border border-white/[0.06]">
+              {profile.badges && profile.badges.length > 0 ? (
+                profile.badges.map((badge: any, idx: number) => {
+                  const bName = typeof badge === 'string' ? badge : badge.name || 'Badge';
+                  return (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-950/40 text-purple-300 border border-purple-500/30 text-xs font-mono shadow-sm"
+                    >
+                      <span>{bName}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveBadge(idx)}
+                        className="text-purple-400 hover:text-red-400 rounded transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  );
+                })
+              ) : (
+                <span className="text-xs font-mono text-slate-500">
+                  No badges added yet. Type a badge name below or click a suggestion.
+                </span>
+              )}
+            </div>
+
+            {/* Quick Badge Suggestions & Input */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input
+                type="text"
+                value={newBadgeText}
+                onChange={(e) => setNewBadgeText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddBadge();
+                  }
+                }}
+                placeholder="Enter badge name (e.g. AWS DeepRacer, Terraform, Serverless)..."
+                className="flex-1 bg-[#080b10] border border-white/[0.1] rounded-lg px-3.5 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#a855f7]"
+              />
+              <button
+                type="button"
+                onClick={handleAddBadge}
+                disabled={!newBadgeText.trim()}
+                className="px-4 py-2 bg-[#a855f7]/20 hover:bg-[#a855f7]/30 text-purple-300 border border-purple-500/40 rounded-lg text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Badge</span>
+              </button>
+            </div>
+
+            {/* Quick chip suggestions */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[10px] font-mono text-slate-500 mr-1">Suggestions:</span>
+              {['AWS DeepRacer', 'Cloud Practitioner', 'Serverless Architecture', 'Terraform', 'Kubernetes', 'Bedrock & GenAI'].map((sug) => (
+                <button
+                  key={sug}
+                  type="button"
+                  onClick={() => {
+                    const current = Array.isArray(profile.badges) ? [...profile.badges] : [];
+                    if (!current.includes(sug)) {
+                      setProfile({ ...profile, badges: [...current, sug] });
+                    }
+                  }}
+                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-slate-200 border border-white/[0.05] transition-colors"
+                >
+                  + {sug}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 5: SOCIAL LINKS */}
         <div className="p-6 sm:p-8 rounded-2xl bg-[#0f141c] border border-white/[0.08] shadow-xl space-y-6">
           <div className="flex items-center gap-2 pb-4 border-b border-white/[0.05]">
             <Globe className="w-4 h-4 text-[#a855f7]" />
