@@ -3,6 +3,7 @@ import './globals.css';
 import { TopHeader } from '@/components/layout/TopHeader';
 import { AwsLogo } from '@/components/common/AwsLogo';
 import { AwsGridLoader } from '@/components/common/AwsGridLoader';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   title: 'AWS Student Builder Group @ SSPU | Builder Center & re:Invent',
@@ -46,6 +47,7 @@ export default function RootLayout({
             </div>
           </footer>
         </div>
+        <Analytics />
       </body>
     </html>
   );
