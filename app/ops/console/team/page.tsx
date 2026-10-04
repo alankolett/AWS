@@ -5,6 +5,7 @@ import { createClient } from '@/lib/infrastructure/supabase/client';
 import { updateProfile, deleteMember } from '@/app/actions/profiles';
 import { createDomain, updateDomain, deleteDomain } from '@/app/actions/domains';
 import { resetUserPasswordToPasskey } from '@/app/actions/admin';
+import { updateSiteSetting } from '@/app/actions/cms';
 import { ImageUpload } from '@/components/common/ImageUpload';
 import {
   Users,
@@ -25,6 +26,15 @@ import {
   Lock,
   Award,
   ShieldCheck,
+  Crown,
+  Sparkles,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+  ToggleLeft,
+  ToggleRight,
+  ArrowUpDown,
+  Filter,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -46,6 +56,13 @@ export default function TeamManagementPage() {
   const [profilesList, setProfilesList] = useState<any[]>([]);
   const [domainsList, setDomainsList] = useState<any[]>([]);
 
+  // Drag & Drop Positioning Playground state (Requirement 3)
+  const [teamOrder, setTeamOrder] = useState<string[]>([]);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [playgroundFilter, setPlaygroundFilter] = useState<string>('ALL');
+  const [playgroundMsg, setPlaygroundMsg] = useState<string>('');
+
   // Domain creation state
   const [newDomainName, setNewDomainName] = useState('');
   const [creatingDomain, setCreatingDomain] = useState(false);
@@ -60,10 +77,23 @@ export default function TeamManagementPage() {
   const supabase = createClient();
 
   const loadData = async () => {
-    const { data: profs } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-    setProfilesList(profs || []);
+    const [{ data: profs }, { data: sects }, { data: settings }] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('team_sections').select('*').order('order_index', { ascending: true }),
+      supabase.from('site_settings').select('*'),
+    ]);
 
-    const { data: sects } = await supabase.from('team_sections').select('*').order('order_index', { ascending: true });
+    const savedOrder: string[] = settings?.find((s) => s.key === 'team_order')?.value?.order || [];
+    setTeamOrder(savedOrder);
+
+    if (profs) {
+      if (savedOrder.length > 0) {
+        const orderMap = new Map(savedOrder.map((id, idx) => [id, idx]));
+        profs.sort((a, b) => (orderMap.get(a.id) ?? 9999) - (orderMap.get(b.id) ?? 9999));
+      }
+      setProfilesList(profs);
+    }
+
     setDomainsList(sects || []);
   };
 
@@ -85,6 +115,135 @@ export default function TeamManagementPage() {
   }, [supabase]);
 
   const isAdmin = user?.role === 'admin';
+
+  // Helper to test if a division is top executive
+  const isExecutiveDivision = (div?: string) => {
+    const d = (div || '').toLowerCase().trim();
+    return d.includes('chapter lead') || d.includes('campus lead') || d.includes('co-lead') || d.includes('co-chapter') || d.includes('co chapter');
+  };
+
+  // Drag & Drop Playground Handlers
+  const handleDragStart = (id: string) => {
+    setDraggedId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (id !== dragOverId) {
+      setDragOverId(id);
+    }
+  };
+
+  const handleDrop = async (targetId: string) => {
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+
+    const currentOrder = teamOrder.length > 0 ? [...teamOrder] : profilesList.map((p) => p.id);
+    if (!currentOrder.includes(draggedId)) currentOrder.push(draggedId);
+    if (!currentOrder.includes(targetId)) currentOrder.push(targetId);
+
+    const fromIndex = currentOrder.indexOf(draggedId);
+    const toIndex = currentOrder.indexOf(targetId);
+
+    if (fromIndex !== -1 && toIndex !== -1) {
+      currentOrder.splice(fromIndex, 1);
+      currentOrder.splice(toIndex, 0, draggedId);
+    }
+
+    setTeamOrder(currentOrder);
+    setDraggedId(null);
+    setDragOverId(null);
+
+    // Optimistic sort
+    const orderMap = new Map(currentOrder.map((id, idx) => [id, idx]));
+    setProfilesList((prev) => [...prev].sort((a, b) => (orderMap.get(a.id) ?? 9999) - (orderMap.get(b.id) ?? 9999)));
+
+    setPlaygroundMsg('Saving new tile order...');
+    const res = await updateSiteSetting('team_order', { order: currentOrder });
+    if (res.error) {
+      setPlaygroundMsg(`Error saving order: ${res.error}`);
+    } else {
+      setPlaygroundMsg('Tile position updated & synced live to /team page!');
+      setTimeout(() => setPlaygroundMsg(''), 3000);
+    }
+  };
+
+  const handleMoveStep = async (id: string, direction: 'up' | 'down') => {
+    const currentOrder = teamOrder.length > 0 ? [...teamOrder] : profilesList.map((p) => p.id);
+    const index = currentOrder.indexOf(id);
+    if (index === -1) return;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentOrder.length) return;
+
+    const temp = currentOrder[index];
+    currentOrder[index] = currentOrder[targetIndex];
+    currentOrder[targetIndex] = temp;
+
+    setTeamOrder(currentOrder);
+    const orderMap = new Map(currentOrder.map((mId, idx) => [mId, idx]));
+    setProfilesList((prev) => [...prev].sort((a, b) => (orderMap.get(a.id) ?? 9999) - (orderMap.get(b.id) ?? 9999)));
+
+    setPlaygroundMsg('Position moved!');
+    const res = await updateSiteSetting('team_order', { order: currentOrder });
+    if (!res.error) {
+      setTimeout(() => setPlaygroundMsg(''), 2500);
+    }
+  };
+
+  // Requirement 2 & 3: Auto-Sort Leads to the first position
+  const handleAutoSortLeadsFirst = async () => {
+    const sorted = [...profilesList].sort((a, b) => {
+      // 1. Executive divisions first
+      const isExecA = isExecutiveDivision(a.division);
+      const isExecB = isExecutiveDivision(b.division);
+      if (isExecA !== isExecB) return isExecA ? -1 : 1;
+
+      // 2. Leads first (is_lead === true)
+      const aLead = Boolean(a.is_lead);
+      const bLead = Boolean(b.is_lead);
+      if (aLead !== bLead) return aLead ? -1 : 1;
+
+      // 3. Fallback to name/email
+      return (a.full_name || a.email).localeCompare(b.full_name || b.email);
+    });
+
+    const newOrder = sorted.map((p) => p.id);
+    setTeamOrder(newOrder);
+    setProfilesList(sorted);
+
+    setPlaygroundMsg('All Leads moved to the first position!');
+    const res = await updateSiteSetting('team_order', { order: newOrder });
+    if (!res.error) {
+      setPlaygroundMsg('All Leads sorted first & published live!');
+      setTimeout(() => setPlaygroundMsg(''), 3500);
+    }
+  };
+
+  // Quick 1-Click Lead toggle on table
+  const handleToggleLead = async (member: any) => {
+    if (!isAdmin) return;
+    const nextVal = !member.is_lead;
+
+    // Optimistic UI update
+    setProfilesList((prev) =>
+      prev.map((p) => (p.id === member.id ? { ...p, is_lead: nextVal } : p))
+    );
+
+    const res = await updateProfile(member.id, { is_lead: nextVal });
+    if (res.error) {
+      alert(`Error updating lead status: ${res.error}`);
+      await loadData();
+    } else {
+      setPlaygroundMsg(
+        `${member.full_name || member.email} is now ${nextVal ? 'designated as LEAD (Orange Border)' : 'regular member (Green Border)'}!`
+      );
+      setTimeout(() => setPlaygroundMsg(''), 3500);
+    }
+  };
 
   const handleCreateDomain = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +288,7 @@ export default function TeamManagementPage() {
   const openEditModal = (member: any) => {
     setEditingProfile({
       ...member,
+      is_lead: Boolean(member.is_lead),
       certifications: Array.isArray(member.certifications) ? member.certifications : [],
       badges: Array.isArray(member.badges) ? member.badges : [],
     });
@@ -329,7 +489,193 @@ export default function TeamManagementPage() {
         {domainMsg && <p className="text-xs font-mono text-emerald-400">{domainMsg}</p>}
       </div>
 
-      {/* SECTION 2: MEMBERS DIRECTORY */}
+      {/* SECTION 2: MEMBER POSITIONING PLAYGROUND (Requirement 3) */}
+      <div className="p-6 rounded-2xl bg-[#0f141c] border border-white/[0.1] shadow-lg space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-mono text-[#00f0ff] font-bold uppercase tracking-wider">
+              <GripVertical className="w-4 h-4 text-[#00f0ff]" />
+              <span>TEAM MEMBER POSITIONING PLAYGROUND</span>
+            </div>
+            <h3 className="text-base font-bold text-white font-sans">
+              Drag &amp; Drop Teammate Tiles to Rearrange Positions
+            </h3>
+            <p className="text-slate-400 text-xs max-w-2xl font-sans">
+              Drag name tiles or use arrow controls to reorder builders. All changes sync live to the public <code className="text-[#00f0ff] font-mono">/team</code> page.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={handleAutoSortLeadsFirst}
+              title="Automatically move all Leads and Executive roles to the front"
+              className="px-4 py-2 bg-[#ff9900] hover:bg-[#e68a00] text-[#080b10] font-mono font-bold text-xs rounded-lg transition-all flex items-center gap-1.5 shadow-md"
+            >
+              <Crown className="w-3.5 h-3.5" />
+              <span>Auto-Sort: Leads First</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Section Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-mono">
+          <span className="text-slate-500 flex items-center gap-1 shrink-0">
+            <Filter className="w-3 h-3" />
+            <span>Filter:</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setPlaygroundFilter('ALL')}
+            className={`px-2.5 py-1 rounded-md transition-colors ${
+              playgroundFilter === 'ALL'
+                ? 'bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40 font-bold'
+                : 'bg-white/[0.04] text-slate-400 border border-white/[0.08] hover:text-white'
+            }`}
+          >
+            All Members ({profilesList.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setPlaygroundFilter('LEADS')}
+            className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
+              playgroundFilter === 'LEADS'
+                ? 'bg-[#ff9900]/20 text-[#ff9900] border border-[#ff9900]/40 font-bold'
+                : 'bg-white/[0.04] text-slate-400 border border-white/[0.08] hover:text-white'
+            }`}
+          >
+            <Crown className="w-3 h-3 text-[#ff9900]" />
+            <span>Leads ({profilesList.filter(p => p.is_lead || isExecutiveDivision(p.division)).length})</span>
+          </button>
+          {domainsList.map(domain => {
+            const count = profilesList.filter(p => p.team_section_id === domain.id).length;
+            return (
+              <button
+                key={domain.id}
+                type="button"
+                onClick={() => setPlaygroundFilter(domain.id)}
+                className={`px-2.5 py-1 rounded-md transition-colors shrink-0 ${
+                  playgroundFilter === domain.id
+                    ? 'bg-[#a855f7]/20 text-[#a855f7] border border-[#a855f7]/40 font-bold'
+                    : 'bg-white/[0.04] text-slate-400 border border-white/[0.08] hover:text-white'
+                }`}
+              >
+                {domain.name} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {playgroundMsg && (
+          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{playgroundMsg}</span>
+          </div>
+        )}
+
+        {/* Small Name-Based Drag-and-Drop Tiles Canvas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 p-4 rounded-xl bg-[#080b10] border border-white/[0.06] min-h-[140px]">
+          {profilesList
+            .filter(p => {
+              if (playgroundFilter === 'ALL') return true;
+              if (playgroundFilter === 'LEADS') return Boolean(p.is_lead || isExecutiveDivision(p.division));
+              return p.team_section_id === playgroundFilter;
+            })
+            .map((member, index, arr) => {
+              const isLead = Boolean(member.is_lead || isExecutiveDivision(member.division));
+              const isDragging = draggedId === member.id;
+              const isDragOver = dragOverId === member.id;
+
+              return (
+                <div
+                  key={member.id}
+                  draggable={true}
+                  onDragStart={() => handleDragStart(member.id)}
+                  onDragOver={(e) => handleDragOver(e, member.id)}
+                  onDrop={() => handleDrop(member.id)}
+                  className={`p-2.5 px-3 rounded-xl border transition-all flex items-center justify-between gap-2.5 select-none cursor-grab active:cursor-grabbing ${
+                    isDragging
+                      ? 'opacity-40 scale-95 border-dashed border-[#ff9900] bg-[#ff9900]/5'
+                      : isDragOver
+                      ? 'border-[#ff9900] bg-[#ff9900]/15 scale-[1.02] shadow-lg'
+                      : isLead
+                      ? 'bg-[#0f141c] border-[#ff9900]/40 hover:border-[#ff9900] shadow-sm'
+                      : 'bg-[#0f141c] border-white/[0.08] hover:border-[#10b981]/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <GripVertical className="w-4 h-4 text-slate-500 shrink-0 hover:text-white" />
+                    
+                    {/* Miniature Avatar with Orange / Green Border */}
+                    <div
+                      className={`w-7 h-7 rounded-lg overflow-hidden shrink-0 bg-[#080b10] border ${
+                        isLead ? 'border-[#ff9900]' : 'border-[#10b981]'
+                      }`}
+                    >
+                      <img
+                        src={member.avatar_url || '/stickman.svg'}
+                        alt={member.full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Name and Tag */}
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-white truncate max-w-[120px] font-sans">
+                        {member.full_name || member.email?.split('@')[0]}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {isLead ? (
+                          <span className="text-[9px] font-mono text-[#ff9900] font-bold flex items-center gap-0.5">
+                            <Crown className="w-2.5 h-2.5" />
+                            <span>LEAD</span>
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-mono text-[#10b981]">MEMBER</span>
+                        )}
+                        {member.division && (
+                          <span className="text-[9px] font-mono text-slate-400 truncate max-w-[80px]">
+                            · {member.division}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Step Buttons (Up/Down) */}
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMoveStep(member.id, 'up');
+                      }}
+                      disabled={index === 0}
+                      className="p-1 rounded text-slate-500 hover:text-white hover:bg-white/[0.08] disabled:opacity-20"
+                      title="Move position up"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMoveStep(member.id, 'down');
+                      }}
+                      disabled={index === arr.length - 1}
+                      className="p-1 rounded text-slate-500 hover:text-white hover:bg-white/[0.08] disabled:opacity-20"
+                      title="Move position down"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+
+      {/* SECTION 3: MEMBERS DIRECTORY & QUICK CONTROLS */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-white font-sans flex items-center gap-2">
@@ -341,6 +687,7 @@ export default function TeamManagementPage() {
         <div className="grid grid-cols-1 gap-4">
           {profilesList.map(member => {
             const domain = domainsList.find(d => d.id === member.team_section_id);
+            const isLead = Boolean(member.is_lead || isExecutiveDivision(member.division));
 
             return (
               <div
@@ -348,7 +695,14 @@ export default function TeamManagementPage() {
                 className="p-5 rounded-2xl bg-[#0f141c] border border-white/[0.08] hover:border-white/[0.15] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#080b10] border border-white/[0.1] shrink-0">
+                  {/* Square Avatar with Orange Border for Leads / Green for Members */}
+                  <div
+                    className={`w-14 h-14 rounded-xl overflow-hidden bg-[#080b10] border-2 ${
+                      isLead
+                        ? 'border-[#ff9900] shadow-[0_0_10px_rgba(255,153,0,0.3)]'
+                        : 'border-[#10b981] shadow-[0_0_10px_rgba(16,185,129,0.25)]'
+                    } shrink-0`}
+                  >
                     <img
                       src={member.avatar_url || '/stickman.svg'}
                       alt={member.full_name}
@@ -361,14 +715,49 @@ export default function TeamManagementPage() {
                       <h3 className="text-base font-bold text-white font-sans">
                         {member.full_name || 'Unnamed Builder'}
                       </h3>
+                      
+                      {/* Privilege Role */}
                       <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase ${
                         member.role === 'admin' ? 'bg-[#ff9900]/20 text-[#ff9900]' : 'bg-[#00f0ff]/20 text-[#00f0ff]'
                       }`}>
                         {member.role}
                       </span>
+
+                      {/* Requirement 2: Quick 1-Click Lead Toggle */}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleLead(member)}
+                          title={`Click to toggle lead status for ${member.full_name || member.email}`}
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase transition-all flex items-center gap-1 border ${
+                            member.is_lead
+                              ? 'bg-[#ff9900]/20 text-[#ff9900] border-[#ff9900]/40 shadow-[0_0_8px_rgba(255,153,0,0.25)] hover:bg-[#ff9900]/30'
+                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                          }`}
+                        >
+                          {member.is_lead ? (
+                            <>
+                              <Crown className="w-2.5 h-2.5 text-[#ff9900]" />
+                              <span>LEAD (ORANGE)</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              <span>MEMBER (GREEN)</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
                       {domain && (
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#a855f7]/20 text-[#a855f7] border border-[#a855f7]/30">
                           {domain.name}
+                        </span>
+                      )}
+
+                      {member.division && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.04] text-slate-300 border border-white/[0.08]">
+                          {member.division}
                         </span>
                       )}
                     </div>
@@ -477,6 +866,31 @@ export default function TeamManagementPage() {
                   </select>
                 </div>
 
+                {/* Requirement 2: isLead Toggle Switch */}
+                <div className="sm:col-span-2 p-4 rounded-xl bg-[#080b10] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <label className="text-xs font-mono text-[#ff9900] font-bold flex items-center gap-1.5 uppercase">
+                      <Crown className="w-4 h-4 text-[#ff9900]" />
+                      <span>Lead Designation (isLead)</span>
+                    </label>
+                    <p className="text-slate-400 text-xs mt-0.5 font-sans">
+                      Designates this builder as a Lead. Leads receive an orange border around their photo and take the first position in their section. All other members receive a green border.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingProfile({ ...editingProfile, is_lead: !editingProfile.is_lead })}
+                    className={`px-4 py-2.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+                      editingProfile.is_lead
+                        ? 'bg-[#ff9900] text-[#080b10] shadow-[0_0_12px_rgba(255,153,0,0.4)]'
+                        : 'bg-white/[0.08] text-slate-300 hover:bg-white/[0.12]'
+                    }`}
+                  >
+                    {editingProfile.is_lead ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                    <span>{editingProfile.is_lead ? 'LEAD: ACTIVE (Orange)' : 'REGULAR MEMBER (Green)'}</span>
+                  </button>
+                </div>
+
                 <div>
                   <label className="block text-xs font-mono text-slate-300 mb-1">Headline / Role Title</label>
                   <input
@@ -505,15 +919,45 @@ export default function TeamManagementPage() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-mono text-slate-300 mb-1">Division (Custom)</label>
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label className="block text-xs font-mono text-slate-300">
+                    Division (Custom)
+                  </label>
                   <input
                     type="text"
                     value={editingProfile.division || ''}
                     onChange={e => setEditingProfile({ ...editingProfile, division: e.target.value })}
-                    placeholder="e.g. Operations, Security, AI/ML"
+                    placeholder="e.g. Chapter Lead, Co-Chapter Lead, Campus Lead, Technical Team"
                     className="w-full bg-[#080b10] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white"
                   />
+
+                  {/* Requirement 1: Division Presets */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[10px] font-mono text-slate-500">Presets:</span>
+                    {[
+                      'Chapter Lead',
+                      'Co-Chapter Lead',
+                      'Campus Lead',
+                      'Technical Team',
+                      'Cloud Security Team',
+                      'Operations',
+                      'DevRel & Community',
+                      'AI & Machine Learning'
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setEditingProfile({ ...editingProfile, division: preset })}
+                        className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-colors ${
+                          editingProfile.division === preset
+                            ? 'bg-[#a855f7]/20 border-[#a855f7] text-[#a855f7] font-bold'
+                            : 'bg-white/[0.04] border-white/[0.08] text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div>

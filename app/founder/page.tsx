@@ -79,9 +79,9 @@ export default async function FounderPage() {
     }
   }
 
-  // Chapter Co-Lead Data (Requirement 5)
+  // Co-Chapter Lead Data (Requirement 5)
   let coLeadName = '';
-  let coLeadRole = 'Chapter Co-Lead';
+  let coLeadRole = 'Co-Chapter Lead';
   let coLeadQuote = '';
   let coLeadAvatarUrl = '';
   let coLeadBio = '';
@@ -107,8 +107,8 @@ export default async function FounderPage() {
       .single();
 
     if (coProfile) {
-      coLeadName = coProfile.full_name || coProfile.email?.split('@')[0] || 'Chapter Co-Lead';
-      coLeadRole = coProfile.headline || 'Chapter Co-Lead & Technical Architect';
+      coLeadName = coProfile.full_name || coProfile.email?.split('@')[0] || 'Co-Chapter Lead';
+      coLeadRole = coProfile.headline || 'Co-Chapter Lead & Technical Architect';
       coLeadAvatarUrl = coProfile.avatar_url || '';
       coLeadBio = coProfile.bio || '';
       coLeadBuilderId = coProfile.builder_id || '';
@@ -156,7 +156,7 @@ export default async function FounderPage() {
         timeline={founderSetting?.timeline}
       />
 
-      {/* 2. Chapter Co-Lead Section (Rendered below Chapter Lead) */}
+      {/* 2. Co-Chapter Lead Section (Rendered below Chapter Lead) */}
       {coLeadName ? (
         <CoLeadSection
           name={coLeadName}

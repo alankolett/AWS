@@ -4,8 +4,9 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { UPCOMING_EVENTS, PAST_EVENTS } from '@/lib/mockData';
 import { notFound } from 'next/navigation';
-import { Calendar, MapPin, User, ExternalLink, FileText, Video, Github, Layers, CheckCircle2 } from 'lucide-react';
+import { Calendar, MapPin, User, ExternalLink, FileText, Video, Github, Layers, CheckCircle2, Globe } from 'lucide-react';
 import Link from 'next/link';
+import { cleanEventDescription, isOnlineEvent } from '@/lib/utils';
 
 const BannerGenerator = dynamic(
   () => import('@/components/features/BannerGenerator'),
@@ -27,7 +28,7 @@ export default async function EventDetailPage({ params }: { params: { eventId: s
     }
   );
 
-  // 1. Fetch from Supabase
+  // 1. Fetch event from Supabase
   const { data: dbEvent } = await supabase
     .from('events')
     .select('*')
@@ -46,6 +47,9 @@ export default async function EventDetailPage({ params }: { params: { eventId: s
     return notFound();
   }
 
+  // Per-event banner studio visibility check (controlled per-event via Admin Console)
+  const isBannerStudioEnabled = !event.tags?.includes('HIDE_BANNER') && event.show_banner_generator !== false;
+
   // Normalize fields between DB and mockData
   const title = event.title;
   const eventDate = event.event_date || event.date || 'TBD';
@@ -55,9 +59,10 @@ export default async function EventDetailPage({ params }: { params: { eventId: s
   const speakerRole = event.speaker_role || event.speakerRole || 'Solutions Architect';
   const seatsRemaining = event.seats_remaining ?? event.seatsRemaining ?? 60;
   const totalSeats = event.total_seats ?? event.totalSeats ?? 60;
+  const isOnline = isOnlineEvent(location, totalSeats);
   const thumbnailUrl = event.thumbnail_url || event.thumbnailUrl;
   const prerequisites = event.prerequisites;
-  const description = event.description;
+  const description = cleanEventDescription(event.description);
   const meetupLink = event.meetup_link || event.meetupLink;
   const bannerTemplates = event.banner_templates || event.bannerTemplates;
   const postEventPhotoUrl = event.post_event_photo_url;
@@ -87,15 +92,15 @@ export default async function EventDetailPage({ params }: { params: { eventId: s
         <span className="text-[#a855f7] truncate max-w-xs">{title}</span>
       </div>
 
-      {/* Hero Thumbnail Banner Style Image */}
+      {/* Hero Thumbnail 16:9 Banner Style Image */}
       {thumbnailUrl && (
-        <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] rounded-2xl overflow-hidden border border-white/[0.1] shadow-2xl bg-[#080b10]">
+        <div className="relative w-full aspect-video max-h-[500px] rounded-2xl overflow-hidden border border-white/[0.1] shadow-2xl bg-[#080b10]">
           <img
             src={thumbnailUrl}
             alt={title}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#080b10] via-[#080b10]/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#080b10] via-transparent to-transparent opacity-80" />
           <div className="absolute top-4 left-4 inline-flex items-center px-3 py-1 rounded-full bg-[#080b10]/80 backdrop-blur border border-white/[0.15] text-xs font-mono text-slate-200">
             {event.type || 'WORKSHOP'}
           </div>
@@ -124,17 +129,33 @@ export default async function EventDetailPage({ params }: { params: { eventId: s
               <span>{eventDate} · {eventTime}</span>
             </div>
             <div className="flex items-center gap-2.5 text-sm font-sans text-slate-300">
-              <MapPin className="w-4 h-4 text-[#00f0ff] shrink-0" />
-              <span>{location}</span>
+              {isOnline ? (
+                <>
+                  <Video className="w-4 h-4 text-[#00f0ff] shrink-0" />
+                  <span className="text-[#00f0ff] font-medium">{location} (Online)</span>
+                </>
+              ) : (
+                <>
+                  <MapPin className="w-4 h-4 text-[#00f0ff] shrink-0" />
+                  <span>{location}</span>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-2.5 text-sm font-sans text-slate-300">
               <User className="w-4 h-4 text-[#a855f7] shrink-0" />
               <span>{speakerName} ({speakerRole})</span>
             </div>
-            <div className="flex items-center gap-2.5 text-sm font-sans text-slate-400 font-mono text-xs">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Seats: {seatsRemaining} / {totalSeats} remaining</span>
-            </div>
+            {!isOnline ? (
+              <div className="flex items-center gap-2.5 text-sm font-sans text-slate-400 font-mono text-xs">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Seats: {seatsRemaining} / {totalSeats} remaining</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5 text-sm font-sans text-cyan-400 font-mono text-xs">
+                <Globe className="w-4 h-4 text-[#00f0ff] shrink-0" />
+                <span>Format: Virtual Session · Open Capacity</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -266,16 +287,18 @@ export default async function EventDetailPage({ params }: { params: { eventId: s
         </div>
       )}
 
-      {/* Official Attendee Banner Studio (Always Available) */}
-      <div className="space-y-6 pt-6 border-t border-white/[0.08]">
-        <BannerGenerator
-          eventTitle={title}
-          eventDate={eventDate}
-          eventTime={eventTime}
-          location={location}
-          themeTemplates={bannerTemplates}
-        />
-      </div>
+      {/* Official Attendee Banner Studio (Configured per-event in Admin Console) */}
+      {isBannerStudioEnabled && bannerTemplates && bannerTemplates.length > 0 && (
+        <div className="space-y-6 pt-6 border-t border-white/[0.08]">
+          <BannerGenerator
+            eventTitle={title}
+            eventDate={eventDate}
+            eventTime={eventTime}
+            location={location}
+            themeTemplates={bannerTemplates}
+          />
+        </div>
+      )}
     </div>
   );
 }

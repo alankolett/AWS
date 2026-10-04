@@ -61,6 +61,7 @@ export async function createAdminOrMemberUser(
     team_section_id?: string;
     division?: string;
     full_name?: string;
+    is_lead?: boolean;
   }
 ) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -97,6 +98,7 @@ export async function createAdminOrMemberUser(
         team_section_id: assignedData?.team_section_id || null,
         division: assignedData?.division || null,
         full_name: assignedData?.full_name || null,
+        is_lead: Boolean(assignedData?.is_lead),
         needs_password_change: true,
         updated_at: new Date().toISOString(),
       });

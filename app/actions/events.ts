@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { deleteStorageFileAction } from '@/app/actions/upload';
 
 function getSupabase() {
   const cookieStore = cookies();
@@ -72,6 +73,7 @@ export async function createEvent(data: {
   recording_url?: string;
   github_url?: string;
   tags?: string[];
+  is_past?: boolean;
 }) {
   const auth = await verifyAdmin();
   if (!auth.authorized) return { error: auth.error };
@@ -106,6 +108,7 @@ export async function createEvent(data: {
     recording_url: data.recording_url || '',
     github_url: data.github_url || '',
     tags: data.tags || ['AWS', 'CLOUD'],
+    is_past: Boolean(data.is_past),
     updated_at: new Date().toISOString()
   };
 
@@ -147,6 +150,7 @@ export async function updateEvent(id: string, data: Partial<{
   recording_url: string;
   github_url: string;
   tags: string[];
+  is_past: boolean;
 }>) {
   const auth = await verifyAdmin();
   if (!auth.authorized) return { error: auth.error };
@@ -177,6 +181,30 @@ export async function deleteEvent(id: string) {
   if (!auth.authorized) return { error: auth.error };
 
   const supabaseAdmin = getSupabaseAdmin();
+
+  // First fetch the event to purge any storage-backed banners and graphics
+  const { data: event } = await supabaseAdmin
+    .from('events')
+    .select('thumbnail_url, post_event_photo_url, banner_templates')
+    .eq('id', id)
+    .single();
+
+  if (event) {
+    if (event.thumbnail_url) {
+      await deleteStorageFileAction(event.thumbnail_url, 'event-banners').catch(console.error);
+    }
+    if (event.post_event_photo_url) {
+      await deleteStorageFileAction(event.post_event_photo_url, 'event-banners').catch(console.error);
+    }
+    if (Array.isArray(event.banner_templates)) {
+      for (const t of event.banner_templates) {
+        if (t?.imageUrl) {
+          await deleteStorageFileAction(t.imageUrl, 'event-banners').catch(console.error);
+        }
+      }
+    }
+  }
+
   const { error } = await supabaseAdmin
     .from('events')
     .delete()

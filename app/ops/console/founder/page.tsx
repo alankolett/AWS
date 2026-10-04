@@ -34,7 +34,7 @@ export default function FounderConfigPage() {
   const [founderBioOverride, setFounderBioOverride] = useState('');
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
 
-  // 2. Chapter Co-Lead State
+  // 2. Co-Chapter Lead State
   const [pinnedCoLeadId, setPinnedCoLeadId] = useState('');
   const [coLeadRoleOverride, setCoLeadRoleOverride] = useState('');
   const [coLeadQuote, setCoLeadQuote] = useState('');
@@ -83,7 +83,7 @@ export default function FounderConfigPage() {
           }
         }
 
-        // Chapter Co-Lead
+        // Co-Chapter Lead
         const pinnedCo = settings.find((s) => s.key === 'pinned_co_lead_id')?.value;
         if (pinnedCo) setPinnedCoLeadId(pinnedCo);
 
@@ -174,10 +174,10 @@ export default function FounderConfigPage() {
             <span>CHAPTER LEADERSHIP CMS</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-            Chapter Lead & Co-Lead Settings
+            Chapter Lead & Co-Chapter Lead Settings
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-            Configure the public Chapter Lead story, origin narrative timeline, and the Chapter Co-Lead profile mapping.
+            Configure the public Chapter Lead story, origin narrative timeline, and the Co-Chapter Lead profile mapping.
           </p>
         </div>
 
@@ -296,19 +296,19 @@ export default function FounderConfigPage() {
           </div>
         </div>
 
-        {/* SECTION 2: CHAPTER CO-LEAD PROFILE MAPPING (Requirement 5) */}
+        {/* SECTION 2: CO-CHAPTER LEAD PROFILE MAPPING (Requirement 5) */}
         <div className="p-6 sm:p-8 rounded-2xl bg-[#0f141c] border border-white/[0.08] space-y-6">
           <div className="flex items-center gap-2 text-xs font-mono text-[#00f0ff] font-bold uppercase tracking-wider">
             <Shield className="w-4 h-4 text-[#00f0ff]" />
-            <span>2. CHAPTER CO-LEAD MAPPING</span>
+            <span>2. CO-CHAPTER LEAD MAPPING</span>
           </div>
           <p className="text-slate-400 text-xs">
-            Map a core member as the Chapter Co-Lead. Their profile card and technical credentials will render directly below the Chapter Lead on the public Leadership page.
+            Map a core member as the Co-Chapter Lead. Their profile card and technical credentials will render directly below the Chapter Lead on the public Leadership page.
           </p>
 
           <div>
             <label className="block text-xs font-mono text-slate-300 mb-1.5 font-semibold">
-              Select Chapter Co-Lead Builder Profile
+              Select Co-Chapter Lead Builder Profile
             </label>
             <select
               value={pinnedCoLeadId}
@@ -335,7 +335,7 @@ export default function FounderConfigPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-white truncate">{selectedCoLead.full_name}</div>
-                <div className="text-xs font-mono text-[#00f0ff]">{selectedCoLead.headline || 'Chapter Co-Lead'}</div>
+                <div className="text-xs font-mono text-[#00f0ff]">{selectedCoLead.headline || 'Co-Chapter Lead'}</div>
                 <div className="text-[11px] font-mono text-slate-500">
                   Builder ID: {selectedCoLead.builder_id || 'Not set'} · {selectedCoLead.email}
                 </div>
@@ -346,13 +346,13 @@ export default function FounderConfigPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-mono text-slate-300 mb-1.5 font-medium">
-                Co-Lead Role Title Override
+                Co-Chapter Lead Role Title Override
               </label>
               <input
                 type="text"
                 value={coLeadRoleOverride}
                 onChange={(e) => setCoLeadRoleOverride(e.target.value)}
-                placeholder="e.g. Chapter Co-Lead & Technical Architect"
+                placeholder="e.g. Co-Chapter Lead & Technical Architect"
                 className="w-full bg-[#080b10] border border-white/[0.1] rounded-lg px-3.5 py-2.5 text-xs text-white focus:border-[#00f0ff] focus:outline-none"
               />
             </div>

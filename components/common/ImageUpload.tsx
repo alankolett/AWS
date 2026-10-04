@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Upload, X, Loader2, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
-import { uploadImageAction } from '@/app/actions/upload';
+import { uploadImageAction, deleteStorageFileAction } from '@/app/actions/upload';
 
 interface ImageUploadProps {
   value?: string;
@@ -22,6 +22,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   helperText = 'PNG, JPG, WebP up to 10MB'
 }) => {
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState(value || '');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -35,11 +36,15 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const oldUrl = preview || value;
     setError('');
     setUploading(true);
 
     const formData = new FormData();
     formData.append('file', file);
+    if (oldUrl) {
+      formData.append('oldFileUrl', oldUrl);
+    }
 
     const res = await uploadImageAction(formData, bucket);
 
@@ -48,6 +53,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     } else if (res.publicUrl) {
       setPreview(res.publicUrl);
       onChange(res.publicUrl);
+
+      // Explicitly purge the replaced image from Supabase storage
+      if (oldUrl && oldUrl !== res.publicUrl) {
+        deleteStorageFileAction(oldUrl, bucket).catch((err) =>
+          console.warn('Background cleanup of replaced image failed:', err)
+        );
+      }
     }
 
     setUploading(false);
@@ -56,17 +68,34 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   };
 
-  const handleRemove = (e: React.MouseEvent) => {
+  const handleRemove = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setPreview('');
-    onChange('');
+    const targetUrl = preview || value;
+    if (!targetUrl) return;
+
+    setError('');
+    setDeleting(true);
+
+    try {
+      // Purge asset directly from Supabase Storage bucket
+      await deleteStorageFileAction(targetUrl, bucket);
+    } catch (err: any) {
+      console.warn('Storage purge error:', err);
+    } finally {
+      setDeleting(false);
+      setPreview('');
+      onChange('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const aspectClass =
     aspect === 'square'
       ? 'aspect-square max-w-[140px]'
       : aspect === 'video'
-      ? 'aspect-video max-w-sm'
+      ? 'aspect-video max-w-md w-full'
       : aspect === 'banner'
       ? 'aspect-[21/9] max-w-xl'
       : 'aspect-video max-w-xs';
@@ -90,24 +119,31 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-mono backdrop-blur transition-colors"
+              disabled={uploading || deleting}
+              className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-mono backdrop-blur transition-colors disabled:opacity-50"
             >
               Replace
             </button>
             <button
               type="button"
               onClick={handleRemove}
-              className="p-1.5 rounded-lg bg-red-500/80 hover:bg-red-600 text-white transition-colors"
-              title="Remove"
+              disabled={uploading || deleting}
+              className="p-1.5 rounded-lg bg-red-500/80 hover:bg-red-600 text-white transition-colors disabled:opacity-50"
+              title="Delete from Storage Bucket"
             >
-              <X className="w-4 h-4" />
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
             </button>
           </div>
           {uploading && (
             <div className="absolute inset-0 bg-black/80 flex items-center justify-center gap-2 text-white font-mono text-xs">
               <Loader2 className="w-4 h-4 animate-spin text-[#ff9900]" />
-              <span>Uploading to Supabase...</span>
+              <span>Replacing in Storage...</span>
+            </div>
+          )}
+          {deleting && (
+            <div className="absolute inset-0 bg-black/85 flex items-center justify-center gap-2 text-white font-mono text-xs">
+              <Loader2 className="w-4 h-4 animate-spin text-red-400" />
+              <span>Purging from Storage Bucket...</span>
             </div>
           )}
         </div>

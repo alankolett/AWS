@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/infrastructure/supabase/client';
 import { updateSiteSettingsBatch } from '@/app/actions/cms';
-import { uploadMediaAction } from '@/app/actions/upload';
+import { uploadMediaAction, deleteStorageFileAction } from '@/app/actions/upload';
 import { ImageUpload } from '@/components/common/ImageUpload';
 import {
   Save,
@@ -154,6 +154,12 @@ export default function HomeCMSPage() {
   };
 
   const handleRemoveFeaturedPerson = (index: number) => {
+    const person = featuredPeople[index];
+    if (person?.photoUrl) {
+      deleteStorageFileAction(person.photoUrl, 'team-photos').catch((err) =>
+        console.warn('Failed to delete dignitary photo:', err)
+      );
+    }
     setFeaturedPeople(featuredPeople.filter((_, i) => i !== index));
   };
 
@@ -164,8 +170,12 @@ export default function HomeCMSPage() {
     setVideoError('');
     setUploadingVideo(true);
 
+    const oldVideo = heroVideoUrl;
     const formData = new FormData();
     formData.append('file', file);
+    if (oldVideo) {
+      formData.append('oldFileUrl', oldVideo);
+    }
 
     const res = await uploadMediaAction(formData, 'cms-media');
     if (res.error) {
@@ -173,6 +183,11 @@ export default function HomeCMSPage() {
     } else if (res.publicUrl) {
       setHeroVideoUrl(res.publicUrl);
       setShowHeroVideo(true);
+      if (oldVideo && oldVideo !== res.publicUrl) {
+        deleteStorageFileAction(oldVideo, 'cms-media').catch((err) =>
+          console.warn('Failed to purge replaced video:', err)
+        );
+      }
     }
     setUploadingVideo(false);
     if (videoInputRef.current) {
@@ -355,6 +370,11 @@ export default function HomeCMSPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    if (heroVideoUrl) {
+                      deleteStorageFileAction(heroVideoUrl, 'cms-media').catch((err) =>
+                        console.warn('Failed to purge removed video:', err)
+                      );
+                    }
                     setHeroVideoUrl('');
                     setShowHeroVideo(false);
                   }}

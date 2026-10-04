@@ -49,7 +49,7 @@ export const CoLeadSection: React.FC<CoLeadSectionProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-mono text-[#00f0ff] tracking-wider uppercase font-semibold">
-                // CHAPTER CO-LEADERSHIP
+                // CO-CHAPTER LEADERSHIP
               </span>
               <span className="text-slate-600">•</span>
               <a
@@ -65,7 +65,7 @@ export const CoLeadSection: React.FC<CoLeadSectionProps> = ({
               </a>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-white font-sans tracking-tight">
-              Chapter Co-Lead & Technical Architect
+              Co-Chapter Lead & Technical Architect
             </h2>
             <p className="text-sm font-mono text-[#00f0ff] mt-1">
               {name} · {role}
@@ -74,7 +74,7 @@ export const CoLeadSection: React.FC<CoLeadSectionProps> = ({
 
           <div className="flex items-center gap-2 self-start sm:self-auto text-xs font-mono text-slate-400">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-            <span>Active Co-Lead</span>
+            <span>Active Co-Chapter Lead</span>
           </div>
         </div>
 

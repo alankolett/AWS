@@ -18,13 +18,16 @@ export default async function TeamPage() {
     }
   );
 
-  // Fetch sections and all profiles
-  const { data: sections } = await supabase.from('team_sections').select('*').order('order_index', { ascending: true });
-  const { data: profiles } = await supabase.from('profiles').select('*');
+  // Fetch sections, all profiles, and settings
+  const [{ data: sections }, { data: profiles }, { data: settings }] = await Promise.all([
+    supabase.from('team_sections').select('*').order('order_index', { ascending: true }),
+    supabase.from('profiles').select('*'),
+    supabase.from('site_settings').select('*')
+  ]);
 
   return (
     <div className="flex flex-col w-full">
-      <MeetTeam sections={sections || []} profiles={profiles || []} />
+      <MeetTeam sections={sections || []} profiles={profiles || []} settings={settings || []} />
     </div>
   );
 }

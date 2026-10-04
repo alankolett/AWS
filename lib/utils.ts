@@ -161,3 +161,81 @@ export function getGoogleMapsDirectUrl(embedInput?: string | null, fallbackLocat
   return 'https://maps.google.com/?q=Symbiosis+Skills+and+Professional+University,+Kiwale,+Pune';
 }
 
+/**
+ * Cleans up corrupted/concatenated description text (e.g. accidentally prepended placeholder strings)
+ */
+export function cleanEventDescription(desc?: string | null): string {
+  if (!desc) return '';
+  let text = desc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  // Strip accidental prepended placeholder remnant:
+  text = text.replace(/^Hands-on architectural spri(nt)?\s*/i, '');
+  return text.trim();
+}
+
+/**
+ * Determines if an event is hosted online / virtually
+ */
+export function isOnlineEvent(location?: string | null, totalSeats?: number | null): boolean {
+  if (!location) return false;
+  if (totalSeats === 0) return true;
+  return /online|virtual|google meet|meet\.google|zoom|teams|youtube|discord/i.test(location);
+}
+
+/**
+ * Checks if an event is in the past based on flag or event date
+ */
+export function isEventPast(eventDate?: string | null, isPastFlag?: boolean | null): boolean {
+  if (isPastFlag) return true;
+  if (!eventDate) return false;
+
+  const trimmed = eventDate.trim();
+  // Today's date in local YYYY-MM-DD
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed < todayStr;
+  }
+
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) {
+    today.setHours(0, 0, 0, 0);
+    return parsed < today;
+  }
+
+  return false;
+}
+
+/**
+ * Extracts bucket name and relative file path from a Supabase storage URL.
+ * Handles both public URLs and signed URLs.
+ * Example URL: https://xyz.supabase.co/storage/v1/object/public/avatars/179105-photo.jpg
+ * -> { bucket: "avatars", path: "179105-photo.jpg" }
+ */
+export function parseSupabaseStorageUrl(url: string): { bucket: string; path: string } | null {
+  if (!url || typeof url !== 'string' || !url.trim()) return null;
+
+  const match = url.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/?#]+)\/([^?#]+)/);
+  if (match) {
+    try {
+      const bucket = decodeURIComponent(match[1]);
+      const path = decodeURIComponent(match[2]);
+      return { bucket, path };
+    } catch {
+      return { bucket: match[1], path: match[2] };
+    }
+  }
+
+  // Handle direct relative paths like "avatars/123-file.png"
+  const knownBuckets = ['avatars', 'event-banners', 'cms-media', 'team-photos'];
+  for (const b of knownBuckets) {
+    if (url.startsWith(`${b}/`)) {
+      return { bucket: b, path: url.slice(b.length + 1) };
+    }
+  }
+
+  return null;
+}

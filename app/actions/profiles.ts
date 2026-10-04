@@ -3,6 +3,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { deleteStorageFileAction } from '@/app/actions/upload';
 
 function getSupabase() {
   const cookieStore = cookies();
@@ -126,6 +127,22 @@ export async function deleteMember(profileId: string) {
 
   const supabaseAdmin = getSupabaseAdmin();
   
+  // Clean up user's avatar and backdrop banner from storage if present
+  const { data: targetProfile } = await supabaseAdmin
+    .from('profiles')
+    .select('avatar_url, banner_url')
+    .eq('id', profileId)
+    .single();
+
+  if (targetProfile) {
+    if (targetProfile.avatar_url) {
+      await deleteStorageFileAction(targetProfile.avatar_url, 'avatars').catch(console.error);
+    }
+    if (targetProfile.banner_url) {
+      await deleteStorageFileAction(targetProfile.banner_url, 'avatars').catch(console.error);
+    }
+  }
+
   // Delete from auth.users (cascades to profiles)
   const { error } = await supabaseAdmin.auth.admin.deleteUser(profileId);
   if (error) {
