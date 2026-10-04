@@ -905,7 +905,7 @@ export default function EventsManagerPage() {
                         />
                       </div>
 
-                      {/* Backdrop Image Upload */}
+                      {/* 16:9 Background Photo Upload (Event Template for Banner Generator) */}
                       <ImageUpload
                         value={theme.imageUrl}
                         onChange={url => {
@@ -914,9 +914,9 @@ export default function EventsManagerPage() {
                           setEditingEvent({ ...editingEvent, banner_templates: newThemes });
                         }}
                         bucket="event-banners"
-                        label="Upload Backdrop Graphic"
+                        label="Upload 16:9 Background Photo (Event Template)"
                         aspect="video"
-                        helperText="Upload background banner artwork stored in Supabase"
+                        helperText="16:9 ratio background artwork for this poster style. Normal attendees will see this background on their banner."
                       />
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">

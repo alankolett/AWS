@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Download, Upload, Trash2, Sparkles, Layers, Image as ImageIcon } from 'lucide-react';
+import { Download, Upload, Trash2, Sparkles, Layers, Image as ImageIcon, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { AwsLogo } from '@/components/common/AwsLogo';
 
 export interface BannerTheme {
@@ -19,6 +19,7 @@ interface BannerGeneratorProps {
   eventTime?: string;
   location?: string;
   themeTemplates?: BannerTheme[];
+  allowBgUpload?: boolean;
 }
 
 const FALLBACK_DEFAULT_THEMES: BannerTheme[] = [
@@ -54,22 +55,25 @@ export default function BannerGenerator({
   eventDate = 'Upcoming Session',
   eventTime = '14:00 - 16:00 IST',
   location = 'Computer Lab 3, SSPU Kiwale Campus',
-  themeTemplates
+  themeTemplates,
+  allowBgUpload = false,
 }: BannerGeneratorProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const bgFileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // If themeTemplates is passed from the event (even if 1 or 2 styles), respect it strictly!
+  // If themeTemplates is passed from the event, respect it strictly
   const themes = (themeTemplates && Array.isArray(themeTemplates) && themeTemplates.length > 0)
     ? themeTemplates
     : FALLBACK_DEFAULT_THEMES;
 
   const [selectedThemeIndex, setSelectedThemeIndex] = useState(0);
 
-  // User form data - No default avatars; starts empty
+  // User form data
   const [name, setName] = useState('');
   const [branchYear, setBranchYear] = useState(BRANCH_OPTIONS[0]);
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
+  const [bgPhotoDataUrl, setBgPhotoDataUrl] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const awsLogoRef = useRef<HTMLImageElement | null>(null);
 
@@ -80,7 +84,7 @@ export default function BannerGenerator({
   const headline = currentTheme.defaultHeadline || "I'm Attending!";
   const badgeText = currentTheme.badgeText || 'AWS SBG · BUILDER INITIATIVE';
 
-  // Preload official AWS Logo for the banner header
+  // Preload official AWS Logo for the blue section of the banner
   useEffect(() => {
     const img = new Image();
     img.src = '/aws-logo.png';
@@ -96,31 +100,24 @@ export default function BannerGenerator({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Fixed 1080x1080 Canvas (Square 1:1 Aspect Ratio)
     const width = 1080;
     const height = 1080;
     canvas.width = width;
     canvas.height = height;
 
     const drawContent = (bgImg?: HTMLImageElement, userImg?: HTMLImageElement) => {
-      // Reset text alignment baseline to prevent bleed from previous renders
       ctx.textAlign = 'start';
       ctx.textBaseline = 'alphabetic';
 
-      // 1. Draw Background
-      if (bgImg) {
-        ctx.drawImage(bgImg, 0, 0, width, height);
-        // Dark contrast overlay
-        ctx.fillStyle = 'rgba(8, 11, 16, 0.88)';
-        ctx.fillRect(0, 0, width, height);
-      } else {
-        ctx.fillStyle = '#080b10';
-        ctx.fillRect(0, 0, width, height);
-      }
+      // 1. Base Canvas Background
+      ctx.fillStyle = '#080b10';
+      ctx.fillRect(0, 0, width, height);
 
-      // 2. Blueprint Grid: subtle, minimal 48px grid
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+      // Subtle blueprint grid
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.025)';
       ctx.lineWidth = 1;
-      const gridSize = 48;
+      const gridSize = 40;
       for (let x = 0; x <= width; x += gridSize) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -134,22 +131,108 @@ export default function BannerGenerator({
         ctx.stroke();
       }
 
-      // 3. Dynamic Ambient Glow based on Theme Accent Color
-      const glow = ctx.createRadialGradient(920, 160, 20, 920, 160, 520);
-      glow.addColorStop(0, `${accentColor}33`);
-      glow.addColorStop(1, 'rgba(8, 11, 16, 0)');
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, 0, width, height);
-
-      // Accent border at the top
+      // Top Accent strip
       ctx.fillStyle = accentColor;
-      ctx.fillRect(0, 0, width, 6);
+      ctx.fillRect(0, 0, width, 5);
 
-      // 4. Header Bar with AWS Logo
+      // =====================================================================
+      // REQUIREMENT 1 & WIREFRAME: 16:9 RATIO BACKGROUND (GREEN SECTION)
+      // Exact 16:9 ratio: 960w x 540h (960 * 9 / 16 = 540)
+      // =====================================================================
+      const boxX = 60;
+      const boxY = 60;
+      const boxW = 960;
+      const boxH = 540;
+      const boxRadius = 20;
+
+      ctx.save();
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(boxX, boxY, boxW, boxH, boxRadius);
+      } else {
+        ctx.rect(boxX, boxY, boxW, boxH);
+      }
+      ctx.clip();
+
+      if (bgImg) {
+        // Enforce 16:9 center-crop so photo is never squashed or distorted
+        const imgW = bgImg.naturalWidth || bgImg.width;
+        const imgH = bgImg.naturalHeight || bgImg.height;
+        const targetRatio = boxW / boxH; // 16/9 = 1.777778
+        const imgRatio = imgW / imgH;
+
+        let sx = 0, sy = 0, sw = imgW, sh = imgH;
+        if (imgRatio > targetRatio) {
+          // Wider than 16:9 -> crop left & right
+          sw = imgH * targetRatio;
+          sx = (imgW - sw) / 2;
+        } else {
+          // Taller than 16:9 -> crop top & bottom
+          sh = imgW / targetRatio;
+          sy = (imgH - sh) / 2;
+        }
+        ctx.drawImage(bgImg, sx, sy, sw, sh, boxX, boxY, boxW, boxH);
+
+        // Subtle gradient overlay for contrast and depth
+        const grad = ctx.createLinearGradient(boxX, boxY, boxX, boxY + boxH);
+        grad.addColorStop(0, 'rgba(0, 0, 0, 0.35)');
+        grad.addColorStop(0.65, 'rgba(0, 0, 0, 0.1)');
+        grad.addColorStop(1, 'rgba(8, 11, 16, 0.65)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+      } else {
+        // High-tech cyber gradient background
+        const techGrad = ctx.createLinearGradient(boxX, boxY, boxX + boxW, boxY + boxH);
+        techGrad.addColorStop(0, '#0a2318');
+        techGrad.addColorStop(0.5, '#071810');
+        techGrad.addColorStop(1, '#050f0a');
+        ctx.fillStyle = techGrad;
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+
+        // Grid lines inside 16:9 section
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.08)';
+        ctx.lineWidth = 1;
+        for (let gx = boxX; gx <= boxX + boxW; gx += 40) {
+          ctx.beginPath();
+          ctx.moveTo(gx, boxY);
+          ctx.lineTo(gx, boxY + boxH);
+          ctx.stroke();
+        }
+        for (let gy = boxY; gy <= boxY + boxH; gy += 40) {
+          ctx.beginPath();
+          ctx.moveTo(boxX, gy);
+          ctx.lineTo(boxX + boxW, gy);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.font = 'bold 32px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('16:9 Event Background', boxX + boxW / 2, boxY + boxH / 2);
+      }
+
+      // =====================================================================
+      // REQUIREMENT 2: AWS LOGO (No container box - direct logo render)
+      // Positioned at top-left of the 16:9 section
+      // =====================================================================
+      const logoX = boxX + 32;
+      const logoY = boxY + 22;
+      const logoH = 46;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 2;
+
       let logoDrawn = false;
       if (awsLogoRef.current && awsLogoRef.current.complete && awsLogoRef.current.naturalWidth > 0) {
         try {
-          ctx.drawImage(awsLogoRef.current, 80, 54, 48, 29);
+          const naturalW = awsLogoRef.current.naturalWidth;
+          const naturalH = awsLogoRef.current.naturalHeight;
+          const logoW = (naturalW / naturalH) * logoH;
+          ctx.drawImage(awsLogoRef.current, logoX, logoY, logoW, logoH);
           logoDrawn = true;
         } catch (e) {
           logoDrawn = false;
@@ -157,112 +240,77 @@ export default function BannerGenerator({
       }
 
       if (!logoDrawn) {
-        // High-tech vector fallback AWS symbol
-        ctx.save();
-        ctx.fillStyle = '#0f141c';
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.rect(80, 54, 48, 29);
-        ctx.fill();
-        ctx.stroke();
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 13px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('AWS', 104, 73);
-        ctx.restore();
+        ctx.font = '900 32px Inter, sans-serif';
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'top';
+        ctx.fillText('aws', logoX, logoY);
       }
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 22px monospace';
-      ctx.textAlign = 'start';
-      ctx.fillText('STUDENT BUILDER GROUP', 140, 77);
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '14px monospace';
-      ctx.textAlign = 'start';
-      ctx.fillText('Symbiosis Skills & Professional University (SSPU)', 140, 101);
-
-
-      // Top-Right Badge
-      ctx.save();
-      ctx.fillStyle = `${accentColor}22`;
-      ctx.strokeStyle = `${accentColor}66`;
-      ctx.lineWidth = 1.5;
-      const badgeW = 340;
-      const badgeH = 40;
-      const badgeX = width - badgeW - 80;
-      const badgeY = 68;
-      ctx.beginPath();
-      ctx.roundRect ? ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 8) : ctx.rect(badgeX, badgeY, badgeW, badgeH);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = accentColor;
-      ctx.font = 'bold 13px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(badgeText, badgeX + badgeW / 2, badgeY + 25);
       ctx.restore();
 
-      // 5. Hero Headline Text
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 68px Inter, sans-serif';
-      ctx.textAlign = 'start';
-      ctx.fillText(headline, 80, 235);
-
-      // 6. Event Card Frame
-      const eventBoxY = 275;
-      const eventBoxH = 260;
-      ctx.fillStyle = 'rgba(15, 20, 28, 0.85)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      // Top-right Headline Pill inside 16:9 section
+      ctx.save();
+      const badgeW = 280;
+      const badgeH = 42;
+      const badgeX = boxX + boxW - badgeW - 24;
+      const badgeY = boxY + 24;
+      ctx.fillStyle = 'rgba(8, 11, 16, 0.75)';
+      ctx.strokeStyle = `${accentColor}88`;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect ? ctx.roundRect(80, eventBoxY, width - 160, eventBoxH, 16) : ctx.rect(80, eventBoxY, width - 160, eventBoxH);
+      if (ctx.roundRect) {
+        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 10);
+      } else {
+        ctx.rect(badgeX, badgeY, badgeW, badgeH);
+      }
       ctx.fill();
       ctx.stroke();
 
-      // Event Metadata
-      ctx.fillStyle = accentColor;
-      ctx.font = 'bold 14px monospace';
-      ctx.fillText('OFFICIAL CHAPTER EVENT', 115, eventBoxY + 45);
-
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 32px Inter, sans-serif';
-      // Truncate title if longer than 40 chars
-      const displayTitle = eventTitle.length > 42 ? eventTitle.substring(0, 42) + '...' : eventTitle;
-      ctx.fillText(displayTitle, 115, eventBoxY + 90);
+      ctx.font = 'bold 15px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(headline.toUpperCase(), badgeX + badgeW / 2, badgeY + badgeH / 2);
+      ctx.restore();
 
-      // Divider line
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      ctx.beginPath();
-      ctx.moveTo(115, eventBoxY + 120);
-      ctx.lineTo(width - 115, eventBoxY + 120);
-      ctx.stroke();
+      ctx.restore(); // End 16:9 clip
 
-      ctx.fillStyle = '#cbd5e1';
-      ctx.font = '500 20px Inter, sans-serif';
-      ctx.fillText(`📅 ${eventDate} · ${eventTime}`, 115, eventBoxY + 165);
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '18px Inter, sans-serif';
-      ctx.fillText(`📍 ${location}`, 115, eventBoxY + 205);
-
-      // 7. Attendee Profile Section
-      const photoSize = 220;
-      const photoX = 80;
-      const photoY = 600;
-      const centerX = photoX + photoSize / 2;
-      const centerY = photoY + photoSize / 2;
-      const radius = photoSize / 2;
-
-      // Draw Photo
+      // Border around 16:9 section
       ctx.save();
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      if (ctx.roundRect) {
+        ctx.roundRect(boxX, boxY, boxW, boxH, boxRadius);
+      } else {
+        ctx.rect(boxX, boxY, boxW, boxH);
+      }
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+
+      // =====================================================================
+      // REQUIREMENT 3 & 4: BOTTOM AREA
+      // Left: Round Profile Photo | Right: Text Data Box
+      // =====================================================================
+      const bottomAreaY = 635;
+      const bottomAreaH = 390;
+
+      // 3. ROUND PROFILE PHOTO (Requirement 3: "Round = Profile Photo Uploading")
+      const photoRadius = 120; // 240px diameter
+      const centerX = 60 + photoRadius;
+      const centerY = bottomAreaY + bottomAreaH / 2;
+      const photoSize = photoRadius * 2;
+      const photoX = centerX - photoRadius;
+      const photoY = centerY - photoRadius;
+
+      // Draw Round Profile Photo
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, photoRadius, 0, Math.PI * 2);
       ctx.clip();
 
       if (userImg) {
-        // Enforce 1:1 aspect ratio auto center-crop so the photo is never squashed or compressed!
+        // Enforce 1:1 auto center-crop
         const imgW = userImg.naturalWidth || userImg.width;
         const imgH = userImg.naturalHeight || userImg.height;
         const sSize = Math.min(imgW, imgH);
@@ -270,11 +318,11 @@ export default function BannerGenerator({
         const sy = (imgH - sSize) / 2;
         ctx.drawImage(userImg, sx, sy, sSize, sSize, photoX, photoY, photoSize, photoSize);
       } else {
-        // High-tech placeholder if user hasn't uploaded a photo
+        // High-tech avatar fallback
         ctx.fillStyle = '#0f141c';
         ctx.fillRect(photoX, photoY, photoSize, photoSize);
         ctx.fillStyle = accentColor;
-        ctx.font = 'bold 64px Inter, sans-serif';
+        ctx.font = 'bold 72px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         const initial = name.trim() ? name.trim().charAt(0).toUpperCase() : '⚡';
@@ -282,53 +330,102 @@ export default function BannerGenerator({
       }
       ctx.restore();
 
-      // Photo border
+      // Outer accent border around round profile photo
       ctx.save();
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = accentColor;
-      ctx.lineWidth = 4;
+      ctx.arc(centerX, centerY, photoRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ff9900'; // AWS Builder Orange
+      ctx.lineWidth = 5;
+      ctx.shadowColor = 'rgba(255, 153, 0, 0.4)';
+      ctx.shadowBlur = 16;
       ctx.stroke();
       ctx.restore();
 
-      // Attendee Details
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 48px Inter, sans-serif';
+      // 4. TEXT DATA CARD (Requirement 4: "All the text data goes the right of the Profile Photot")
+      const cardX = 330;
+      const cardY = bottomAreaY;
+      const cardW = width - 60 - cardX; // 690px
+      const cardH = bottomAreaH;
+      const cardRadius = 18;
+
+      ctx.save();
+      // Text Data Frame
+      ctx.fillStyle = 'rgba(15, 20, 28, 0.95)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(cardX, cardY, cardW, cardH, cardRadius);
+      } else {
+        ctx.rect(cardX, cardY, cardW, cardH);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      // Top accent bar
+      ctx.fillStyle = accentColor;
+      ctx.fillRect(cardX + 24, cardY, cardW - 48, 3);
+
+      const tx = cardX + 32;
       ctx.textAlign = 'start';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(name.trim() || 'Student Builder', 335, 680);
 
+      // 4.1 Tagline / Badge
+      ctx.fillStyle = '#ff9900';
+      ctx.font = 'bold 13px monospace';
+      ctx.fillText('AWS STUDENT BUILDER GROUP · OFFICIAL PASS', tx, cardY + 44);
+
+      // 4.2 Attendee Name
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 36px Inter, sans-serif';
+      const attendeeName = name.trim() || 'Student Builder';
+      const displayAttendee = attendeeName.length > 26 ? attendeeName.substring(0, 26) + '...' : attendeeName;
+      ctx.fillText(displayAttendee, tx, cardY + 90);
+
+      // 4.3 Branch & Year
       ctx.fillStyle = accentColor;
-      ctx.font = 'bold 22px monospace';
-      ctx.fillText(branchYear, 335, 725);
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '19px Inter, sans-serif';
-      ctx.fillText('Symbiosis Skills and Professional University', 335, 765);
-
-      ctx.fillStyle = '#34d399';
       ctx.font = 'bold 16px monospace';
-      ctx.fillText('● CONFIRMED PARTICIPANT • OFFICIAL BUILDER PASS', 335, 805);
+      ctx.fillText(branchYear, tx, cardY + 122);
 
-      // 8. Footer Strip
+      // 4.4 University
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '14px Inter, sans-serif';
+      ctx.fillText('Symbiosis Skills and Professional University (SSPU)', tx, cardY + 148);
+
+      // Divider line
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(80, 940);
-      ctx.lineTo(width - 80, 940);
+      ctx.moveTo(tx, cardY + 172);
+      ctx.lineTo(cardX + cardW - 32, cardY + 172);
       ctx.stroke();
 
-      ctx.fillStyle = '#64748b';
-      ctx.font = '16px monospace';
-      ctx.fillText('AWS Student Builder Group @ SSPU · Official Chapter Portal', 80, 990);
+      // 4.5 Event Title
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 22px Inter, sans-serif';
+      const cleanEventTitle = eventTitle.length > 38 ? eventTitle.substring(0, 38) + '...' : eventTitle;
+      ctx.fillText(cleanEventTitle, tx, cardY + 210);
 
-      ctx.fillStyle = accentColor;
-      ctx.font = 'bold 15px monospace';
-      ctx.textAlign = 'end';
-      ctx.fillText('DESIGN SYSTEM: AWS re:Invent', width - 80, 990);
+      // 4.6 Event Date & Time
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '500 16px Inter, sans-serif';
+      ctx.fillText(`📅 ${eventDate} · ${eventTime}`, tx, cardY + 248);
+
+      // 4.7 Location
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '15px Inter, sans-serif';
+      const cleanLoc = location.length > 40 ? location.substring(0, 40) + '...' : location;
+      ctx.fillText(`📍 ${cleanLoc}`, tx, cardY + 280);
+
+      // 4.8 Status Pass Indicator
+      ctx.fillStyle = '#10b981';
+      ctx.font = 'bold 13px monospace';
+      ctx.fillText('● CONFIRMED PARTICIPANT • OFFICIAL BUILDER PASS', tx, cardY + 325);
+
+      ctx.restore();
     };
 
-    // Load background image and user photo
+    // Load background image (custom user upload takes priority over theme template)
     let loadedBg: HTMLImageElement | undefined;
     let loadedUser: HTMLImageElement | undefined;
 
@@ -340,7 +437,8 @@ export default function BannerGenerator({
       }
     };
 
-    if (currentTheme.imageUrl) {
+    const bgSourceUrl = bgPhotoDataUrl || currentTheme.imageUrl;
+    if (bgSourceUrl) {
       pending++;
       const bg = new Image();
       bg.crossOrigin = 'anonymous';
@@ -349,7 +447,7 @@ export default function BannerGenerator({
         checkDone();
       };
       bg.onerror = () => checkDone();
-      bg.src = currentTheme.imageUrl;
+      bg.src = bgSourceUrl;
     }
 
     if (photoDataUrl) {
@@ -367,13 +465,13 @@ export default function BannerGenerator({
     if (pending === 0) {
       drawContent(undefined, undefined);
     }
-  }, [name, branchYear, photoDataUrl, currentTheme, eventTitle, eventDate, eventTime, location, accentColor, headline, badgeText]);
+  }, [name, branchYear, photoDataUrl, bgPhotoDataUrl, currentTheme, eventTitle, eventDate, eventTime, location, accentColor, headline, badgeText]);
 
   useEffect(() => {
     drawBanner();
   }, [drawBanner]);
 
-  // Temporary in-memory client-side upload only (Zero Supabase storage bottlenecks)
+  // Handle Profile Photo Upload (Round)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -387,13 +485,39 @@ export default function BannerGenerator({
     }
   };
 
-  // Clear all data button and clear after download
+  // Handle 16:9 Background Photo Upload (Green Section)
+  const handleBgFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setBgPhotoDataUrl(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleClearBgPhoto = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBgPhotoDataUrl(null);
+    if (bgFileInputRef.current) {
+      bgFileInputRef.current.value = '';
+    }
+  };
+
+  // Clear all data button
   const handleClearAll = () => {
     setName('');
     setBranchYear(BRANCH_OPTIONS[0]);
     setPhotoDataUrl(null);
+    setBgPhotoDataUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    if (bgFileInputRef.current) {
+      bgFileInputRef.current.value = '';
     }
   };
 
@@ -430,7 +554,7 @@ export default function BannerGenerator({
           "I'm Attending" Event Banner Studio
         </h3>
         <p className="text-sm text-slate-400 mt-1 max-w-2xl font-sans">
-          Select from the active event poster styles declared by chapter admins, upload your headshot, and generate your 1080×1080 attendance graphic.
+          Select from active event poster styles, upload your round profile photo, and generate your 1080×1080 attendance graphic.
         </p>
       </div>
 
@@ -482,6 +606,116 @@ export default function BannerGenerator({
             <AwsLogo className="w-6 h-auto" variant="dual" />
           </div>
 
+          {/* 16:9 Background Photo Upload (Admin Config Only) */}
+          {allowBgUpload && (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-mono text-slate-300 font-medium">
+                  Upload 16:9 Background Photo (Admin Mode)
+                </label>
+                <span className="text-[10px] font-mono text-[#10b981] font-bold">16:9 Ratio BG</span>
+              </div>
+              <label className="flex flex-col items-center justify-center w-full min-h-[96px] border border-dashed border-white/[0.15] hover:border-[#10b981] rounded-lg cursor-pointer bg-[#0f141c]/50 hover:bg-[#0f141c] transition-all relative overflow-hidden p-3">
+                {bgPhotoDataUrl ? (
+                  <div className="flex items-center justify-between gap-3 w-full">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={bgPhotoDataUrl}
+                        alt="Uploaded 16:9 background"
+                        className="w-20 h-11 object-cover rounded-md border border-[#10b981]"
+                      />
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs text-emerald-400 font-mono font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span>Custom 16:9 BG Active</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">Click to replace photo</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearBgPhoto}
+                      className="p-1.5 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 font-mono text-[10px] flex items-center gap-1 transition-colors"
+                      title="Reset to Event Template"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Reset</span>
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <ImageIcon className="w-5 h-5 text-[#10b981] mb-1" />
+                    <span className="text-xs font-mono text-slate-300 font-medium">Click to Upload 16:9 Background</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Admin Override · Defaults to event template</span>
+                  </>
+                )}
+                <input
+                  ref={bgFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBgFileUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          )}
+
+          {/* REQUIREMENT 3: Headshot Photo Upload (Round Profile Photo) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-mono text-slate-300 font-medium">
+                Upload Headshot Photo (Round)
+              </label>
+              <span className="text-[10px] font-mono text-[#ff9900]">1:1 Round Auto-Cropped</span>
+            </div>
+            <label className="flex flex-col items-center justify-center w-full min-h-[96px] border border-dashed border-white/[0.15] hover:border-[#ff9900] rounded-lg cursor-pointer bg-[#0f141c]/50 hover:bg-[#0f141c] transition-all relative overflow-hidden p-3">
+              {photoDataUrl ? (
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={photoDataUrl}
+                      alt="Uploaded headshot preview"
+                      className="w-12 h-12 rounded-full object-cover border-2 border-[#ff9900]"
+                    />
+                    <div className="flex flex-col text-left">
+                      <span className="text-xs text-amber-400 font-mono font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-amber-400" />
+                        <span>Round Photo Active</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">Click to replace photo</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPhotoDataUrl(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="p-1.5 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 font-mono text-[10px] flex items-center gap-1 transition-colors"
+                    title="Remove Headshot"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Remove</span>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Upload className="w-5 h-5 text-[#ff9900] mb-1" />
+                  <span className="text-xs font-mono text-slate-300 font-medium">Click to Upload Headshot Photo</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Square 1:1 recommended · Auto-clipped to circle</span>
+                </>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
+
           {/* Attendee Name Input */}
           <div>
             <label className="block text-xs font-mono text-slate-300 mb-1.5 font-medium">
@@ -496,7 +730,7 @@ export default function BannerGenerator({
             />
           </div>
 
-          {/* Academic Branch Selector (Dropdown Only - No Custom Input) */}
+          {/* Academic Branch Selector */}
           <div>
             <label className="block text-xs font-mono text-slate-300 mb-1.5 font-medium">
               Branch & Graduation Class
@@ -512,47 +746,6 @@ export default function BannerGenerator({
                 </option>
               ))}
             </select>
-            <p className="text-[10px] text-slate-500 font-mono mt-1">
-              Select your registered academic specialization at SSPU.
-            </p>
-          </div>
-
-          {/* Temporary Photo Upload Zone (In-memory only, no DB/Storage bottleneck) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-mono text-slate-300 font-medium">
-                Upload Headshot Photo
-              </label>
-              <span className="text-[10px] font-mono text-[#ff9900]">1:1 Square Auto-Cropped</span>
-            </div>
-            <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-white/[0.15] hover:border-[#a855f7] rounded-lg cursor-pointer bg-[#0f141c]/50 hover:bg-[#0f141c] transition-all relative overflow-hidden">
-              {photoDataUrl ? (
-                <div className="flex items-center gap-3 p-2 w-full h-full justify-center">
-                  <img
-                    src={photoDataUrl}
-                    alt="Uploaded headshot preview"
-                    className="w-14 h-14 rounded-full object-cover border-2 border-[#a855f7]"
-                  />
-                  <div className="flex flex-col text-left">
-                    <span className="text-xs text-emerald-400 font-mono font-bold">Photo Loaded (1:1 Auto-Cropped)</span>
-                    <span className="text-[10px] text-slate-400 font-mono">Click to replace photo</span>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 text-[#a855f7] mb-1" />
-                  <span className="text-xs font-mono text-slate-300 font-medium">Click to Upload Headshot</span>
-                  <span className="text-[10px] text-slate-400 font-mono">Square 1:1 recommended · Auto-centered without distortion</span>
-                </>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
           </div>
 
           {/* Action Buttons: Download + Clear All Data */}
