@@ -7,9 +7,10 @@ import { Calendar } from 'lucide-react';
 
 interface UpcomingEventsProps {
   pinnedEventId?: string;
+  pinnedEventIds?: string[];
 }
 
-export const UpcomingEvents = async ({ pinnedEventId }: UpcomingEventsProps) => {
+export const UpcomingEvents = async ({ pinnedEventId, pinnedEventIds }: UpcomingEventsProps) => {
   const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,16 +23,20 @@ export const UpcomingEvents = async ({ pinnedEventId }: UpcomingEventsProps) => 
     }
   );
 
+  const targetIds = pinnedEventIds && pinnedEventIds.length > 0
+    ? pinnedEventIds
+    : (pinnedEventId && pinnedEventId.trim().length > 0 ? [pinnedEventId.trim()] : []);
+
   let query = supabase.from('events').select('*').order('event_date', { ascending: false });
 
-  if (pinnedEventId) {
-    query = query.eq('id', pinnedEventId);
+  if (targetIds.length > 0) {
+    query = query.in('id', targetIds);
   }
 
   const { data: dbEvents } = await query;
 
-  if ((!dbEvents || dbEvents.length === 0) && pinnedEventId) {
-    return null; // On home page, if pinned event not found or no events, don't show section
+  if ((!dbEvents || dbEvents.length === 0) && targetIds.length > 0) {
+    return null; // On home page, if pinned events not found, don't show section
   }
 
   const events: EventSession[] = (dbEvents || []).map(e => ({

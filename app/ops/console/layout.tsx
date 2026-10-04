@@ -14,7 +14,8 @@ import {
   ExternalLink,
   LogOut,
   Sparkles,
-  Award
+  Award,
+  MessageSquare
 } from 'lucide-react';
 
 export default function OpsConsoleLayout({
@@ -119,6 +120,7 @@ export default function OpsConsoleLayout({
         { label: 'Founder Story', href: '/ops/console/founder', icon: Award },
         { label: 'Events Manager', href: '/ops/console/events', icon: Calendar },
         { label: 'Team & Domains', href: '/ops/console/team', icon: Users },
+        { label: 'Contact Info', href: '/ops/console/contact', icon: MessageSquare },
         { label: 'My Profile', href: '/ops/console/my-profile', icon: User },
         { label: 'Provisioning', href: '/ops/console/provision', icon: Shield },
       ]

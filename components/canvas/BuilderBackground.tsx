@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 
 // Geometric Sparkle Types
 type SparkleShape = 'cross' | 'square' | 'diamond' | 'cluster';
@@ -156,6 +157,7 @@ const renderPixelShape = (shape: SparkleShape, color: string, size: number) => {
 };
 
 export const BuilderBackground: React.FC = () => {
+  const pathname = usePathname();
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 50, y: 30 });
 
@@ -170,12 +172,18 @@ export const BuilderBackground: React.FC = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  // Don't render public background on the ops console
+  if (pathname?.startsWith('/ops/console')) {
+    return null;
+  }
+
   return (
     <div
       ref={containerRef}
       className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden select-none"
       aria-hidden="true"
     >
+
       {/* ========================================================================= */}
       {/* 1. Official Blueprint Engineering Grid Layer (Spans 100% of entire page)   */}
       {/* ========================================================================= */}
@@ -352,12 +360,37 @@ export const BuilderBackground: React.FC = () => {
           }
         }
 
+        /* Route Change Scanning Laser Beam across navbar switches */
+        .route-scan-laser {
+          height: 2px;
+          background: linear-gradient(90deg, transparent 0%, #00f0ff 20%, #ff9900 50%, #a855f7 80%, transparent 100%);
+          box-shadow: 0 0 16px #00f0ff, 0 0 32px #ff9900;
+          animation: laserScan 0.85s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+
+        @keyframes laserScan {
+          0% {
+            top: 0%;
+            opacity: 1;
+            transform: scaleY(1);
+          }
+          70% {
+            opacity: 0.9;
+          }
+          100% {
+            top: 100%;
+            opacity: 0;
+            transform: scaleY(0.5);
+          }
+        }
+
         /* Respect prefers-reduced-motion: disable animations */
         @media (prefers-reduced-motion: reduce) {
           .pixel-sparkle,
           .data-packet-h-1,
           .data-packet-h-2,
-          .data-packet-v-1 {
+          .data-packet-v-1,
+          .route-scan-laser {
             animation: none !important;
             opacity: 0.5 !important;
           }

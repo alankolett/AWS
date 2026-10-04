@@ -3,6 +3,7 @@ import './globals.css';
 import { TopHeader } from '@/components/layout/TopHeader';
 import { AwsLogo } from '@/components/common/AwsLogo';
 import { AwsGridLoader } from '@/components/common/AwsGridLoader';
+import { BuilderBackground } from '@/components/canvas/BuilderBackground';
 
 export const metadata: Metadata = {
   title: 'AWS Student Builder Group @ SSPU | Builder Center & re:Invent',
@@ -19,9 +20,10 @@ export default function RootLayout({
     <html lang="en" className="dark scroll-smooth">
       <body className="bg-aws-canvas text-slate-200 antialiased min-h-screen selection:bg-purple-600 selection:text-white">
         <AwsGridLoader />
-        <div className="min-h-screen bg-[#080b10] text-[#f1f5f9] flex flex-col selection:bg-[#ff9900]/30 selection:text-white">
+        <div className="min-h-screen bg-[#080b10] text-[#f1f5f9] flex flex-col selection:bg-[#ff9900]/30 selection:text-white relative">
           <TopHeader />
-          <main className="flex-1 w-full">
+          <main className="flex-1 w-full relative">
+            <BuilderBackground />
             {children}
           </main>
           <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-white/[0.08] bg-[#080b10] text-slate-400 text-xs font-sans">

@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck, Github, Linkedin, Globe, Quote, Terminal, User, Award, Layers } from 'lucide-react';
+import { ShieldCheck, Github, Linkedin, Globe, Quote, Terminal, User, Award, Layers, ExternalLink } from 'lucide-react';
 import { FOUNDER_STORY } from '@/lib/mockData';
+import { getAwsBuilderProfileUrl } from '@/lib/utils';
 
 interface FounderStoryProps {
   name: string;
@@ -56,10 +57,17 @@ export const FounderStory: React.FC<FounderStoryProps> = ({
                 // CHAPTER FOUNDER & LEAD
               </span>
               <span className="text-slate-600">•</span>
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono text-slate-300">
+              <a
+                href={getAwsBuilderProfileUrl(builderId || 'sspu-lead')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-[#ff9900]/40 text-[11px] font-mono text-slate-300 hover:text-white transition-colors group/fbid"
+                title="Open Public AWS Builder Profile"
+              >
                 <Terminal className="w-3 h-3 text-[#ff9900]" />
                 <span>BUILDER_ID: {builderId || 'sspu-lead'}</span>
-              </span>
+                <ExternalLink className="w-2.5 h-2.5 opacity-60 group-hover/fbid:opacity-100" />
+              </a>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-white font-sans tracking-tight">
               Founder & Community Lead

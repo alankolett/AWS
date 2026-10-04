@@ -1,8 +1,7 @@
 import React from 'react';
 import { HeroSection } from '@/components/features/HeroSection';
 import { UpcomingEvents } from '@/components/features/UpcomingEvents';
-import { FounderStory } from '@/components/features/FounderStory';
-import { BuilderBackground } from '@/components/canvas/BuilderBackground';
+import { FeaturedPeople, FeaturedPerson } from '@/components/features/FeaturedPeople';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
@@ -15,109 +14,89 @@ export default async function HomePage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return cookieStore.getAll(); },
+        getAll() {
+          return cookieStore.getAll();
+        },
         setAll() {},
       },
     }
   );
 
   const { data: settings } = await supabase.from('site_settings').select('*');
-  
-  let heroTitle = "Architect the Cloud.\nBuild at SSPU.";
-  let heroSubtitle = "The official AWS Student Builder Group at Symbiosis Skills and Professional University. Preparing student engineers through hands-on architectural sprints, cloud security labs, and official AWS certification pathways.";
-  let pinnedEventId = "";
-  let pinnedFounderId = "";
 
-  let founderName = "Founder Name";
-  let founderRole = "Founder / Captain";
-  let founderQuote = "Cloud architectures shape the future. Let's build it.";
-  let avatarUrl = "";
-  let bio = "";
-  let builderId = "";
-  let githubUrl = "";
-  let linkedinUrl = "";
-  let portfolioUrl = "";
-  let headline = "";
-  let founderTimeline: any[] | undefined = undefined;
-  let division = "";
-  let branch = "";
-  let year = "";
-  let certifications: any[] = [];
-  let badges: any[] = [];
+  // Hero section state
+  let heroTitle = 'Architect the Cloud. Build at SSPU.\nShape the Future of Cloud Computing.';
+  let heroSubtitle =
+    'The official AWS Student Builder Group at Symbiosis Skills and Professional University.';
+  let heroVideoUrl = '';
+  let showHeroVideo = true;
+  let heroLogoUrl = '';
 
-  let teamPhotoUrl = "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1600";
-  let teamPhotoCaption = "AWS Student Builder Group @ SSPU · Student Engineers & Chapter Collective";
+  // Pinned Events state
+  let showPinnedEvents = true;
+  let pinnedEventIds: string[] = [];
+
+  // Featured People state
+  let showFeaturedPeople = true;
+  let featuredPeopleTag = '// CHAPTER HONORED GUESTS & DIGNITARIES';
+  let featuredPeopleTitle = 'Featured Builders & Dignitaries';
+  let featuredPeopleSubtitle =
+    'Distinguished industry architects, university patrons, and keynote speakers shaping the AWS student ecosystem.';
+  let featuredPeople: FeaturedPerson[] = [];
+
+  let teamPhotoUrl =
+    'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1600';
+  let teamPhotoCaption =
+    'AWS Student Builder Group @ SSPU · Student Engineers & Chapter Collective';
 
   if (settings) {
-    const heroSetting = settings.find(s => s.key === 'hero_section');
-    if (heroSetting && heroSetting.value) {
-      heroTitle = heroSetting.value.title || heroTitle;
-      heroSubtitle = heroSetting.value.subtitle || heroSubtitle;
-    }
-    const pinnedSetting = settings.find(s => s.key === 'pinned_event_id');
-    if (pinnedSetting && pinnedSetting.value) {
-      pinnedEventId = pinnedSetting.value;
-    }
-
-    const pinnedFounderSetting = settings.find(s => s.key === 'pinned_founder_id');
-    if (pinnedFounderSetting && pinnedFounderSetting.value) {
-      pinnedFounderId = pinnedFounderSetting.value;
+    const heroSetting = settings.find((s) => s.key === 'hero_section')?.value;
+    if (heroSetting) {
+      heroTitle = heroSetting.title || heroTitle;
+      heroSubtitle = heroSetting.subtitle || heroSubtitle;
+      heroVideoUrl = heroSetting.video_url || '';
+      showHeroVideo = heroSetting.show_video !== false;
+      heroLogoUrl = heroSetting.logo_url || '';
     }
 
-    const founderSetting = settings.find(s => s.key === 'founder_section')?.value;
-    if (founderSetting) {
-      if (founderSetting.name) founderName = founderSetting.name;
-      if (founderSetting.role) founderRole = founderSetting.role;
-      if (founderSetting.quote) founderQuote = founderSetting.quote;
-      if (founderSetting.bio && typeof founderSetting.bio === 'string' && founderSetting.bio.trim()) {
-        bio = founderSetting.bio.trim();
-      }
-      if (founderSetting.timeline) founderTimeline = founderSetting.timeline;
+    const showEvts = settings.find((s) => s.key === 'show_pinned_events')?.value;
+    showPinnedEvents = showEvts !== false;
+
+    const pinnedEvtsSetting = settings.find((s) => s.key === 'pinned_event_ids')?.value;
+    const pinnedSingleSetting = settings.find((s) => s.key === 'pinned_event_id')?.value;
+    if (Array.isArray(pinnedEvtsSetting) && pinnedEvtsSetting.length > 0) {
+      pinnedEventIds = pinnedEvtsSetting;
+    } else if (pinnedSingleSetting && typeof pinnedSingleSetting === 'string' && pinnedSingleSetting.trim()) {
+      pinnedEventIds = [pinnedSingleSetting.trim()];
     }
 
-    const teamPhotoSetting = settings.find(s => s.key === 'team_photo')?.value;
+    const fpSetting = settings.find((s) => s.key === 'featured_people_section')?.value;
+    if (fpSetting) {
+      showFeaturedPeople = fpSetting.show_section !== false;
+      featuredPeopleTag = fpSetting.tag || featuredPeopleTag;
+      featuredPeopleTitle = fpSetting.title || featuredPeopleTitle;
+      featuredPeopleSubtitle = fpSetting.subtitle || featuredPeopleSubtitle;
+      featuredPeople = Array.isArray(fpSetting.people) ? fpSetting.people : [];
+    }
+
+    const teamPhotoSetting = settings.find((s) => s.key === 'team_photo')?.value;
     if (teamPhotoSetting) {
       if (teamPhotoSetting.url) teamPhotoUrl = teamPhotoSetting.url;
       if (teamPhotoSetting.caption) teamPhotoCaption = teamPhotoSetting.caption;
     }
   }
 
-  // If a profile is pinned as the Founder, load their data from profiles table
-  if (pinnedFounderId && typeof pinnedFounderId === 'string' && pinnedFounderId.trim()) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', pinnedFounderId)
-      .single();
-
-    if (profile) {
-      founderName = profile.full_name || founderName;
-      founderRole = profile.headline || (profile.role === 'admin' ? 'Founder & Lead' : 'Core Member');
-      avatarUrl = profile.avatar_url || '';
-      if (!bio && profile.bio) bio = profile.bio;
-      builderId = profile.builder_id || '';
-      githubUrl = profile.github_url || '';
-      linkedinUrl = profile.linkedin_url || '';
-      portfolioUrl = profile.portfolio_url || '';
-      headline = profile.headline || '';
-      division = profile.division || '';
-      branch = profile.branch || '';
-      year = profile.year || '';
-      certifications = profile.certifications || [];
-      badges = profile.badges || [];
-      if (profile.quote && founderQuote === "Cloud architectures shape the future. Let's build it.") {
-        founderQuote = profile.quote;
-      }
-    }
-  }
-
   return (
-    <div className="relative flex flex-col w-full min-h-screen overflow-hidden">
-      {/* Full-Page Official Blueprint Grid & 8-Bit Pixel Star Canvas */}
-      <BuilderBackground />
-
+    <div className="relative flex flex-col w-full min-h-screen">
       <div className="relative z-10 flex flex-col w-full">
-        <HeroSection title={heroTitle} subtitle={heroSubtitle} />
+        {/* Hero Section with AWS re:Invent Video Layer & Translucent Glass Card */}
+        <HeroSection
+          title={heroTitle}
+          subtitle={heroSubtitle}
+          videoUrl={heroVideoUrl}
+          showVideo={showHeroVideo}
+          logoUrl={heroLogoUrl}
+        />
 
         {/* Full Size Team Photo Section */}
         <section className="py-20 px-4 sm:px-6 lg:px-8 border-b border-white/[0.08]">
@@ -151,30 +130,18 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* Featured / Pinned event spotlight (Only displayed when an event is explicitly pinned) */}
-        {pinnedEventId && typeof pinnedEventId === 'string' && pinnedEventId.trim().length > 0 ? (
-          <UpcomingEvents pinnedEventId={pinnedEventId.trim()} />
+        {/* Pinned Events Spotlight (Supports Multiple Pinned Events with Toggle) */}
+        {showPinnedEvents && pinnedEventIds.length > 0 ? (
+          <UpcomingEvents pinnedEventIds={pinnedEventIds} />
         ) : null}
 
-        {/* Pinned Founder Profile & Story (Only displayed when a founder is explicitly pinned) */}
-        {pinnedFounderId && typeof pinnedFounderId === 'string' && pinnedFounderId.trim().length > 0 ? (
-          <FounderStory
-            name={founderName}
-            role={founderRole}
-            quote={founderQuote}
-            avatarUrl={avatarUrl}
-            bio={bio}
-            builderId={builderId}
-            githubUrl={githubUrl}
-            linkedinUrl={linkedinUrl}
-            portfolioUrl={portfolioUrl}
-            headline={headline}
-            division={division}
-            branch={branch}
-            year={year}
-            certifications={certifications}
-            badges={badges}
-            timeline={founderTimeline}
+        {/* Featured Dignitaries & Mentors Section (Alternating Left/Right Cards) */}
+        {showFeaturedPeople && featuredPeople.length > 0 ? (
+          <FeaturedPeople
+            people={featuredPeople}
+            sectionTag={featuredPeopleTag}
+            sectionTitle={featuredPeopleTitle}
+            sectionSubtitle={featuredPeopleSubtitle}
           />
         ) : null}
       </div>

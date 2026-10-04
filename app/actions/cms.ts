@@ -74,7 +74,9 @@ export async function updateSiteSetting(key: string, value: any) {
   revalidatePath('/home');
   revalidatePath('/founder');
   revalidatePath('/events');
+  revalidatePath('/contact');
   revalidatePath('/ops/console/home');
+  revalidatePath('/ops/console/contact');
   return { success: true };
 }
 
@@ -104,6 +106,8 @@ export async function updateSiteSettingsBatch(items: { key: string; value: any }
   revalidatePath('/home');
   revalidatePath('/founder');
   revalidatePath('/events');
+  revalidatePath('/contact');
   revalidatePath('/ops/console/home');
+  revalidatePath('/ops/console/contact');
   return { success: true };
 }

@@ -197,8 +197,8 @@ export default async function EventDetailPage({ params }: { params: { eventId: s
         </div>
       </div>
 
-      {/* Dynamic Segment: Post-Event vs Poster Studio */}
-      {showPostEvent ? (
+      {/* Post-Event Recap & Materials (if session concluded) */}
+      {showPostEvent && (
         <div className="p-6 sm:p-8 rounded-2xl bg-[#0f141c] border border-[#ff9900]/30 shadow-[0_0_20px_rgba(255,153,0,0.08)] space-y-6">
           <div className="flex items-center gap-2 text-xs font-mono text-[#ff9900] uppercase font-bold tracking-wider">
             <CheckCircle2 className="w-4 h-4" />
@@ -264,17 +264,18 @@ export default async function EventDetailPage({ params }: { params: { eventId: s
             )}
           </div>
         </div>
-      ) : (
-        <div className="space-y-6 pt-4 border-t border-white/[0.08]">
-          <BannerGenerator
-            eventTitle={title}
-            eventDate={eventDate}
-            eventTime={eventTime}
-            location={location}
-            themeTemplates={bannerTemplates}
-          />
-        </div>
       )}
+
+      {/* Official Attendee Banner Studio (Always Available) */}
+      <div className="space-y-6 pt-6 border-t border-white/[0.08]">
+        <BannerGenerator
+          eventTitle={title}
+          eventDate={eventDate}
+          eventTime={eventTime}
+          location={location}
+          themeTemplates={bannerTemplates}
+        />
+      </div>
     </div>
   );
 }

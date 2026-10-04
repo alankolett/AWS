@@ -55,7 +55,13 @@ async function verifyAdmin() {
 export async function createAdminOrMemberUser(
   email: string,
   passkey: string,
-  role: 'admin' | 'member'
+  role: 'admin' | 'member',
+  assignedData?: {
+    headline?: string;
+    team_section_id?: string;
+    division?: string;
+    full_name?: string;
+  }
 ) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return { error: 'Service role key is not configured.' };
@@ -80,13 +86,17 @@ export async function createAdminOrMemberUser(
   if (newUser?.user) {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // Ensure profile row exists or is updated with assigned role and needs_password_change
+    // Hardbind assigned role, domain section, and division locked with email ID
     await supabaseAdmin
       .from('profiles')
       .upsert({
         id: newUser.user.id,
         email,
         role,
+        headline: assignedData?.headline || (role === 'admin' ? 'Chapter Administrator' : 'Core Builder'),
+        team_section_id: assignedData?.team_section_id || null,
+        division: assignedData?.division || null,
+        full_name: assignedData?.full_name || null,
         needs_password_change: true,
         updated_at: new Date().toISOString(),
       });

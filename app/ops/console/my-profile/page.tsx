@@ -25,6 +25,7 @@ import {
   Trash2,
   X,
   Tag,
+  Lock,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -291,28 +292,59 @@ export default function MyProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-slate-300 mb-1.5 font-semibold">
-                Headline / Role Title
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-mono text-slate-300 font-semibold">
+                  Headline / Role Title
+                </label>
+                {profile.role !== 'admin' && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded">
+                    <Lock className="w-2.5 h-2.5" />
+                    <span>Locked by Admin</span>
+                  </span>
+                )}
+              </div>
               <input
                 type="text"
+                disabled={profile.role !== 'admin'}
                 value={profile.headline || ''}
                 onChange={(e) => setProfile({ ...profile, headline: e.target.value })}
                 placeholder="e.g. Cloud Security Fellow, Architecture Lead"
-                className="w-full bg-[#080b10] border border-white/[0.1] rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#ff9900]"
+                className={`w-full bg-[#080b10] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none ${
+                  profile.role !== 'admin'
+                    ? 'opacity-65 cursor-not-allowed border-white/[0.06] bg-[#080b10]/60'
+                    : 'border-white/[0.1] focus:border-[#ff9900]'
+                }`}
               />
+              {profile.role !== 'admin' && (
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Hardbound to your builder account by chapter administrators.
+                </p>
+              )}
             </div>
 
             {/* Domain Dropdown */}
             <div>
-              <label className="block text-xs font-mono text-[#00f0ff] mb-1.5 font-bold flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5" />
-                <span>Chapter Domain / Specialization *</span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-mono text-[#00f0ff] font-bold flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Chapter Domain / Specialization *</span>
+                </label>
+                {profile.role !== 'admin' && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded">
+                    <Lock className="w-2.5 h-2.5" />
+                    <span>Assigned by Admin</span>
+                  </span>
+                )}
+              </div>
               <select
+                disabled={profile.role !== 'admin'}
                 value={profile.team_section_id || ''}
                 onChange={(e) => setProfile({ ...profile, team_section_id: e.target.value || null })}
-                className="w-full bg-[#080b10] border border-[#00f0ff]/40 rounded-lg px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-[#00f0ff]"
+                className={`w-full bg-[#080b10] border rounded-lg px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none ${
+                  profile.role !== 'admin'
+                    ? 'opacity-65 cursor-not-allowed border-white/[0.06] bg-[#080b10]/60'
+                    : 'border-[#00f0ff]/40 focus:border-[#00f0ff]'
+                }`}
               >
                 <option value="">[General Builder / No Domain Assigned]</option>
                 {domains.map((d) => (
@@ -322,20 +354,35 @@ export default function MyProfilePage() {
                 ))}
               </select>
               <p className="text-[10px] text-slate-500 mt-1">
-                Classifies your profile under a domain (e.g. Developer Team, Cloud Security Team).
+                {profile.role !== 'admin'
+                  ? 'Locked: Domain specialization can only be modified by chapter administrators.'
+                  : 'Classifies your profile under a domain (e.g. Developer Team, Cloud Security Team).'}
               </p>
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-slate-300 mb-1.5 font-semibold">
-                Custom Division
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-mono text-slate-300 font-semibold">
+                  Custom Division
+                </label>
+                {profile.role !== 'admin' && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded">
+                    <Lock className="w-2.5 h-2.5" />
+                    <span>Locked</span>
+                  </span>
+                )}
+              </div>
               <input
                 type="text"
+                disabled={profile.role !== 'admin'}
                 value={profile.division || ''}
                 onChange={(e) => setProfile({ ...profile, division: e.target.value })}
                 placeholder="e.g. Cloud Operations, AI/ML Labs"
-                className="w-full bg-[#080b10] border border-white/[0.1] rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#ff9900]"
+                className={`w-full bg-[#080b10] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none ${
+                  profile.role !== 'admin'
+                    ? 'opacity-65 cursor-not-allowed border-white/[0.06] bg-[#080b10]/60'
+                    : 'border-white/[0.1] focus:border-[#ff9900]'
+                }`}
               />
             </div>
 

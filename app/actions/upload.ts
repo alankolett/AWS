@@ -88,3 +88,61 @@ export async function uploadImageAction(formData: FormData, bucket: string = 'cm
     return { error: err.message || 'Image upload failed.' };
   }
 }
+
+export async function uploadMediaAction(formData: FormData, bucket: string = 'cms-media') {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { error: 'Supabase storage credentials not configured on server.' };
+  }
+
+  // 1. Verify user is authenticated
+  const userClient = getUserClient();
+  const { data: { user }, error: authError } = await userClient.auth.getUser();
+  if (authError || !user) {
+    return { error: 'Unauthorized: Please log in to upload assets.' };
+  }
+
+  const file = formData.get('file') as File | null;
+  if (!file) {
+    return { error: 'No media file provided for upload.' };
+  }
+
+  // Support both video and image files
+  const isVideo = file.type.startsWith('video/');
+  const isImage = file.type.startsWith('image/');
+  if (!isVideo && !isImage) {
+    return { error: 'Only video files (MP4, WebM, Ogg) or image files are allowed.' };
+  }
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filePath = `hero-media/${Date.now()}-${safeName}`;
+
+    // Upload with 1-year immutable cacheControl so browsers efficiently cache the video chunk
+    const storageAdmin = getStorageAdmin();
+    const { data, error } = await storageAdmin.storage
+      .from(bucket)
+      .upload(filePath, buffer, {
+        contentType: file.type,
+        cacheControl: '31536000',
+        upsert: true,
+      });
+
+    if (error) {
+      console.error('Media upload error:', error);
+      return { error: error.message };
+    }
+
+    const { data: { publicUrl } } = storageAdmin.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    return { success: true, publicUrl };
+  } catch (err: any) {
+    console.error('Media upload exception:', err);
+    return { error: err.message || 'Media upload failed.' };
+  }
+}
+

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface BoxStyle {
@@ -10,22 +11,52 @@ interface BoxStyle {
 }
 
 export const AwsGridLoader: React.FC = () => {
+  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
+  const [routeTransitioning, setRouteTransitioning] = useState(false);
+  const prevPathnameRef = useRef<string | null>(null);
+  const isInitialMount = useRef(true);
 
+  // 1. Initial Page Load Check
   useEffect(() => {
-    // Only show once per session
     const hasLoaded = sessionStorage.getItem('has_loaded_sbg');
     if (hasLoaded) {
       setLoading(false);
+    } else {
+      const timer = setTimeout(() => {
+        setLoading(false);
+        sessionStorage.setItem('has_loaded_sbg', 'true');
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  // 2. Navbar Route Hop Trigger (Requirement 6)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      prevPathnameRef.current = pathname;
       return;
     }
 
-    const timer = setTimeout(() => {
-      setLoading(false);
-      sessionStorage.setItem('has_loaded_sbg', 'true');
-    }, 1400);
-    return () => clearTimeout(timer);
-  }, []);
+    // Ignore transitions inside ops console
+    if (pathname?.startsWith('/ops/console')) {
+      prevPathnameRef.current = pathname;
+      return;
+    }
+
+    if (prevPathnameRef.current !== pathname) {
+      prevPathnameRef.current = pathname;
+      setRouteTransitioning(true);
+      const timer = setTimeout(() => {
+        setRouteTransitioning(false);
+      }, 550);
+      return () => clearTimeout(timer);
+    }
+  }, [pathname]);
+
+  const showLoader = loading || routeTransitioning;
+
 
   const gridVariants = {
     initial: { opacity: 1 },
@@ -78,10 +109,10 @@ export const AwsGridLoader: React.FC = () => {
 
   return (
     <AnimatePresence>
-      {loading && (
+      {showLoader && (
         <motion.div
           key="aws-grid-loader"
-          className="fixed inset-0 z-[9999] bg-[#080b10] flex flex-col items-center justify-center overflow-hidden selection:bg-transparent"
+          className="fixed inset-0 z-[9999] bg-[#080b10]/95 backdrop-blur-md flex flex-col items-center justify-center overflow-hidden selection:bg-transparent pointer-events-none"
           variants={gridVariants}
           initial="initial"
           exit="exit"
@@ -120,7 +151,7 @@ export const AwsGridLoader: React.FC = () => {
           <div className="relative z-10 mt-8 flex flex-col items-center gap-1.5 font-mono text-center">
             <div className="text-xs sm:text-sm text-[#ff9900] font-bold tracking-widest flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#ff9900] animate-ping" />
-              <span>INITIALIZING AWS SBG PORTAL</span>
+              <span>{loading ? 'INITIALIZING AWS SBG PORTAL' : 'SWITCHING CHAPTER CONTEXT'}</span>
             </div>
             <div className="text-[11px] text-slate-400 tracking-wider">
               ap-south-1 · Symbiosis Skills & Professional Univ.
@@ -131,3 +162,4 @@ export const AwsGridLoader: React.FC = () => {
     </AnimatePresence>
   );
 };
+

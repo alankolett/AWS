@@ -20,6 +20,7 @@ export const TopHeader: React.FC = () => {
     { label: 'Events', href: '/events' },
     { label: 'Founder', href: '/founder' },
     { label: 'Team', href: '/team' },
+    { label: 'Contact', href: '/contact' },
   ];
 
   return (

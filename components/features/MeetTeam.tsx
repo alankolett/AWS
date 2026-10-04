@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Github, Linkedin, Globe, User, ArrowUpRight } from 'lucide-react';
+import { ShieldCheck, Github, Linkedin, Globe, User, ArrowUpRight, Terminal, ExternalLink } from 'lucide-react';
+import { getAwsBuilderProfileUrl } from '@/lib/utils';
 
 interface MeetTeamProps {
   sections: any[];
@@ -75,32 +76,56 @@ export const MeetTeam: React.FC<MeetTeamProps> = ({ sections, profiles }) => {
 function MemberCard({ member }: { member: any }) {
   return (
     <div className="group p-6 rounded-2xl bg-[#0f141c] border border-white/[0.08] hover:border-[#ff9900]/40 transition-all duration-300 flex flex-col justify-between shadow-lg relative">
-      <Link href={`/team/${member.id}`} className="block">
-        <div className="flex items-start gap-4 mb-5">
-          <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-[#080b10] border border-white/[0.1] flex items-center justify-center group-hover:border-[#ff9900]/50 transition-colors">
+      <div>
+        <div className="flex items-start gap-4 mb-4">
+          <Link
+            href={`/team/${member.id}`}
+            className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-[#080b10] border border-white/[0.1] flex items-center justify-center group-hover:border-[#ff9900]/50 transition-colors cursor-pointer"
+          >
             {member.avatar_url ? (
               <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
             ) : (
               <User className="w-8 h-8 text-slate-500" />
             )}
-          </div>
+          </Link>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-1">
-              <h4 className="text-lg font-bold text-white font-sans leading-tight group-hover:text-[#ff9900] transition-colors truncate">
+            <Link
+              href={`/team/${member.id}`}
+              className="flex items-center justify-between gap-1 group/title cursor-pointer"
+            >
+              <h4 className="text-lg font-bold text-white font-sans leading-tight group-hover/title:text-[#ff9900] transition-colors truncate">
                 {member.full_name || member.email?.split('@')[0] || 'Builder'}
               </h4>
-              <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-[#ff9900] transition-colors shrink-0" />
-            </div>
+              <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover/title:text-[#ff9900] transition-colors shrink-0" />
+            </Link>
             <div className="text-xs font-mono text-[#ff9900] mt-1">{member.headline || (member.role === 'admin' ? 'Administrator' : 'Member')}</div>
             {member.division && <div className="text-[10px] font-mono text-[#a855f7] mt-0.5">{member.division}</div>}
             {member.branch && <div className="text-[10px] font-mono text-slate-500 mt-0.5">{member.branch} {member.year ? `· ${member.year}` : ''}</div>}
+            {member.builder_id && (
+              <div className="mt-2">
+                <a
+                  href={getAwsBuilderProfileUrl(member.builder_id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#ff9900]/10 hover:bg-[#ff9900]/20 text-[#ff9900] border border-[#ff9900]/30 text-[10px] font-mono transition-colors group/bid"
+                  title="Open Public AWS Builder Profile"
+                >
+                  <Terminal className="w-3 h-3 text-[#ff9900]" />
+                  <span className="truncate max-w-[130px]">{member.builder_id}</span>
+                  <ExternalLink className="w-2.5 h-2.5 opacity-60 group-hover/bid:opacity-100" />
+                </a>
+              </div>
+            )}
           </div>
         </div>
 
-        <p className="text-sm text-slate-400 leading-relaxed font-sans line-clamp-3 mb-5 min-h-[60px]">
+        <Link
+          href={`/team/${member.id}`}
+          className="block text-sm text-slate-400 hover:text-slate-300 leading-relaxed font-sans line-clamp-3 mb-5 min-h-[60px] transition-colors"
+        >
           {member.bio || 'Active AWS Student Builder Group community contributor.'}
-        </p>
-      </Link>
+        </Link>
+      </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-white/[0.08]">
         <div className="flex -space-x-2">

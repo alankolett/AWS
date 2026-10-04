@@ -16,7 +16,9 @@ import {
   Quote,
   User,
   Award,
+  Terminal,
 } from 'lucide-react';
+import { getAwsBuilderProfileUrl } from '@/lib/utils';
 
 export const revalidate = 0;
 
@@ -179,9 +181,24 @@ export default async function TeamMemberPage({ params }: { params: { teamId: str
                 )}
               </div>
 
-              <p className="text-[#ff9900] font-mono text-xs sm:text-sm font-semibold">
-                {memberData.role}
-              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <p className="text-[#ff9900] font-mono text-xs sm:text-sm font-semibold">
+                  {memberData.role}
+                </p>
+                {memberData.builderId && (
+                  <a
+                    href={getAwsBuilderProfileUrl(memberData.builderId)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ff9900]/10 hover:bg-[#ff9900]/20 text-[#ff9900] border border-[#ff9900]/30 text-xs font-mono transition-colors group/bid"
+                    title="View Public AWS Builder Center Profile"
+                  >
+                    <Terminal className="w-3.5 h-3.5 text-[#ff9900]" />
+                    <span>AWS Builder ID: {memberData.builderId}</span>
+                    <ExternalLink className="w-3 h-3 opacity-60 group-hover/bid:opacity-100" />
+                  </a>
+                )}
+              </div>
 
               {(memberData.division || memberData.branch || memberData.year) && (
                 <div className="flex items-center gap-2 text-xs font-mono text-slate-400 flex-wrap">

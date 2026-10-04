@@ -71,6 +71,7 @@ export default function BannerGenerator({
   const [branchYear, setBranchYear] = useState(BRANCH_OPTIONS[0]);
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const awsLogoRef = useRef<HTMLImageElement | null>(null);
 
   // Clamp selected theme index if themes changed
   const validIndex = selectedThemeIndex < themes.length ? selectedThemeIndex : 0;
@@ -78,6 +79,16 @@ export default function BannerGenerator({
   const accentColor = currentTheme.accentColor || '#a855f7';
   const headline = currentTheme.defaultHeadline || "I'm Attending!";
   const badgeText = currentTheme.badgeText || 'AWS SBG · BUILDER INITIATIVE';
+
+  // Preload official AWS Logo for the banner header
+  useEffect(() => {
+    const img = new Image();
+    img.src = '/aws-logo.png';
+    img.onload = () => {
+      awsLogoRef.current = img;
+      drawBanner();
+    };
+  }, []);
 
   const drawBanner = useCallback(() => {
     const canvas = canvasRef.current;
@@ -91,6 +102,10 @@ export default function BannerGenerator({
     canvas.height = height;
 
     const drawContent = (bgImg?: HTMLImageElement, userImg?: HTMLImageElement) => {
+      // Reset text alignment baseline to prevent bleed from previous renders
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+
       // 1. Draw Background
       if (bgImg) {
         ctx.drawImage(bgImg, 0, 0, width, height);
@@ -130,14 +145,44 @@ export default function BannerGenerator({
       ctx.fillStyle = accentColor;
       ctx.fillRect(0, 0, width, 6);
 
-      // 4. Header Bar
+      // 4. Header Bar with AWS Logo
+      let logoDrawn = false;
+      if (awsLogoRef.current && awsLogoRef.current.complete && awsLogoRef.current.naturalWidth > 0) {
+        try {
+          ctx.drawImage(awsLogoRef.current, 80, 54, 48, 29);
+          logoDrawn = true;
+        } catch (e) {
+          logoDrawn = false;
+        }
+      }
+
+      if (!logoDrawn) {
+        // High-tech vector fallback AWS symbol
+        ctx.save();
+        ctx.fillStyle = '#0f141c';
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.rect(80, 54, 48, 29);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 13px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('AWS', 104, 73);
+        ctx.restore();
+      }
+
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 24px monospace';
-      ctx.fillText('AWS STUDENT BUILDER GROUP', 80, 85);
+      ctx.font = 'bold 22px monospace';
+      ctx.textAlign = 'start';
+      ctx.fillText('STUDENT BUILDER GROUP', 140, 77);
 
       ctx.fillStyle = '#94a3b8';
-      ctx.font = '16px monospace';
-      ctx.fillText('Symbiosis Skills & Professional University (SSPU)', 80, 115);
+      ctx.font = '14px monospace';
+      ctx.textAlign = 'start';
+      ctx.fillText('Symbiosis Skills & Professional University (SSPU)', 140, 101);
+
 
       // Top-Right Badge
       ctx.save();
@@ -217,7 +262,13 @@ export default function BannerGenerator({
       ctx.clip();
 
       if (userImg) {
-        ctx.drawImage(userImg, photoX, photoY, photoSize, photoSize);
+        // Enforce 1:1 aspect ratio auto center-crop so the photo is never squashed or compressed!
+        const imgW = userImg.naturalWidth || userImg.width;
+        const imgH = userImg.naturalHeight || userImg.height;
+        const sSize = Math.min(imgW, imgH);
+        const sx = (imgW - sSize) / 2;
+        const sy = (imgH - sSize) / 2;
+        ctx.drawImage(userImg, sx, sy, sSize, sSize, photoX, photoY, photoSize, photoSize);
       } else {
         // High-tech placeholder if user hasn't uploaded a photo
         ctx.fillStyle = '#0f141c';
@@ -468,9 +519,12 @@ export default function BannerGenerator({
 
           {/* Temporary Photo Upload Zone (In-memory only, no DB/Storage bottleneck) */}
           <div>
-            <label className="block text-xs font-mono text-slate-300 mb-1.5 font-medium">
-              Upload Headshot Photo
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-mono text-slate-300 font-medium">
+                Upload Headshot Photo
+              </label>
+              <span className="text-[10px] font-mono text-[#ff9900]">1:1 Square Auto-Cropped</span>
+            </div>
             <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-white/[0.15] hover:border-[#a855f7] rounded-lg cursor-pointer bg-[#0f141c]/50 hover:bg-[#0f141c] transition-all relative overflow-hidden">
               {photoDataUrl ? (
                 <div className="flex items-center gap-3 p-2 w-full h-full justify-center">
@@ -480,7 +534,7 @@ export default function BannerGenerator({
                     className="w-14 h-14 rounded-full object-cover border-2 border-[#a855f7]"
                   />
                   <div className="flex flex-col text-left">
-                    <span className="text-xs text-emerald-400 font-mono font-bold">Photo Loaded (Local)</span>
+                    <span className="text-xs text-emerald-400 font-mono font-bold">Photo Loaded (1:1 Auto-Cropped)</span>
                     <span className="text-[10px] text-slate-400 font-mono">Click to replace photo</span>
                   </div>
                 </div>
@@ -488,7 +542,7 @@ export default function BannerGenerator({
                 <>
                   <Upload className="w-4 h-4 text-[#a855f7] mb-1" />
                   <span className="text-xs font-mono text-slate-300 font-medium">Click to Upload Headshot</span>
-                  <span className="text-[10px] text-slate-500 font-mono">Temporary browser memory (JPG, PNG)</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Square 1:1 recommended · Auto-centered without distortion</span>
                 </>
               )}
               <input

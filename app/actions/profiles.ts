@@ -72,11 +72,14 @@ export async function updateProfile(profileId: string, data: {
     return { error: 'Forbidden: You can only edit your own profile.' };
   }
 
-  // If a member is editing their own profile, prevent them from elevating their role to admin
+  // If a member is editing their own profile, prevent them from changing their system role or assigned chapter role/domain
   const sanitizedData = { ...data };
   if (!isAdmin) {
-    delete sanitizedData.role; // Members cannot change their role
+    delete sanitizedData.role; // Members cannot change system role
     delete sanitizedData.is_lead;
+    delete sanitizedData.headline; // Members cannot change assigned role/headline
+    delete sanitizedData.team_section_id; // Members cannot change assigned domain section
+    delete sanitizedData.division; // Members cannot change assigned division
   }
 
   // Use service role client to ensure reliable execution bypassing RLS

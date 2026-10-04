@@ -32,6 +32,12 @@ export default function ProvisionPage() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'member' | 'admin'>('member');
   const [passkey, setPasskey] = useState('000000');
+  const [assignedHeadline, setAssignedHeadline] = useState('');
+  const [assignedDomainId, setAssignedDomainId] = useState('');
+  const [assignedDivision, setAssignedDivision] = useState('');
+  const [assignedFullName, setAssignedFullName] = useState('');
+  const [domains, setDomains] = useState<any[]>([]);
+
   const [submitting, setSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -61,6 +67,12 @@ export default function ProvisionPage() {
         .select('*')
         .order('created_at', { ascending: false });
       setProfiles(data || []);
+
+      const { data: sects } = await supabase
+        .from('team_sections')
+        .select('*')
+        .order('order_index', { ascending: true });
+      setDomains(sects || []);
     } else {
       setIsAdmin(false);
     }
@@ -88,17 +100,31 @@ export default function ProvisionPage() {
     setSubmitting(true);
     setStatusMsg(null);
 
-    const res = await createAdminOrMemberUser(email.trim().toLowerCase(), passkey.trim(), role);
+    const res = await createAdminOrMemberUser(
+      email.trim().toLowerCase(),
+      passkey.trim(),
+      role,
+      {
+        headline: assignedHeadline.trim() || undefined,
+        team_section_id: assignedDomainId || undefined,
+        division: assignedDivision.trim() || undefined,
+        full_name: assignedFullName.trim() || undefined,
+      }
+    );
 
     if (res.error) {
       setStatusMsg({ type: 'error', text: res.error });
     } else {
       setStatusMsg({
         type: 'success',
-        text: `Successfully provisioned ${role.toUpperCase()} account for ${email} with passkey "${passkey}".`,
+        text: `Successfully provisioned ${role.toUpperCase()} account for ${email} with passkey "${passkey}" and locked chapter assignment.`,
       });
       setEmail('');
       setPasskey('000000');
+      setAssignedHeadline('');
+      setAssignedDomainId('');
+      setAssignedDivision('');
+      setAssignedFullName('');
       loadData();
     }
     setSubmitting(false);
@@ -303,6 +329,85 @@ export default function ProvisionPage() {
                 Share this with the user. They will enter this on first login and set a permanent password.
               </p>
             </div>
+          </div>
+
+          {/* Row 2: Hardbound Role & Domain Assignment (Locked to Email) */}
+          <div className="pt-4 border-t border-white/[0.06] space-y-3">
+            <div className="flex items-center gap-2 text-xs font-mono text-[#00f0ff] font-bold">
+              <Lock className="w-3.5 h-3.5 text-[#ff9900]" />
+              <span>HARDBOUND ROLE & DOMAIN (LOCKED TO MEMBER EMAIL)</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Full Name */}
+              <div>
+                <label className="block text-xs font-mono text-slate-300 mb-1.5 font-semibold">
+                  Full Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={assignedFullName}
+                  onChange={(e) => setAssignedFullName(e.target.value)}
+                  placeholder="e.g. Laksh Meghani"
+                  className="w-full bg-[#080b10] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#00f0ff]"
+                />
+              </div>
+
+              {/* Assigned Role / Headline */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-mono text-slate-300 font-semibold">
+                    Assigned Headline / Role
+                  </label>
+                  <span className="text-[9px] font-mono text-[#ff9900]">Hardbound</span>
+                </div>
+                <input
+                  type="text"
+                  value={assignedHeadline}
+                  onChange={(e) => setAssignedHeadline(e.target.value)}
+                  placeholder="e.g. Cloud Architect, Core Builder"
+                  className="w-full bg-[#080b10] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#00f0ff]"
+                />
+              </div>
+
+              {/* Assigned Domain Section */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-mono text-slate-300 font-semibold">
+                    Chapter Domain / Team
+                  </label>
+                  <span className="text-[9px] font-mono text-[#ff9900]">Hardbound</span>
+                </div>
+                <select
+                  value={assignedDomainId}
+                  onChange={(e) => setAssignedDomainId(e.target.value)}
+                  className="w-full bg-[#080b10] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-[#00f0ff]"
+                >
+                  <option value="">[General Builder / No Domain]</option>
+                  {domains.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Division */}
+              <div>
+                <label className="block text-xs font-mono text-slate-300 mb-1.5 font-semibold">
+                  Custom Division (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={assignedDivision}
+                  onChange={(e) => setAssignedDivision(e.target.value)}
+                  placeholder="e.g. Operations, Labs"
+                  className="w-full bg-[#080b10] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#00f0ff]"
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-500 font-mono">
+              Note: Non-admin members cannot change their assigned headline or domain section in their profile editor.
+            </p>
           </div>
 
           <div className="flex items-center justify-end pt-4 border-t border-white/[0.08]">
