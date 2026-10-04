@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Quote, Linkedin, Twitter, Github, Globe, ExternalLink, Award } from 'lucide-react';
+import { AwsLogo } from '@/components/common/AwsLogo';
 
 export interface FeaturedPerson {
   id: string;
@@ -18,29 +19,38 @@ export interface FeaturedPerson {
   tags?: string[];
 }
 
+export interface LogosProps {
+  awsLogoUrl?: string;
+  sspuLogoUrl?: string;
+}
+
 interface FeaturedPeopleProps {
+  id?: string;
   sectionTag?: string;
   sectionTitle?: string;
   sectionSubtitle?: string;
   people: FeaturedPerson[];
+  logos?: LogosProps;
 }
 
 export const FeaturedPeople: React.FC<FeaturedPeopleProps> = ({
+  id = 'featured-people',
   sectionTag = '// CHAPTER HONORED GUESTS & DIGNITARIES',
   sectionTitle = 'Featured Builders & Mentors',
   sectionSubtitle = 'Distinguished industry architects, university patrons, and keynote speakers shaping the AWS student ecosystem.',
   people = [],
+  logos,
 }) => {
   if (!people || people.length === 0) {
     return null;
   }
 
   return (
-    <section id="featured-people" className="py-20 px-4 sm:px-6 lg:px-8 border-b border-white/[0.08] scroll-mt-16">
+    <section id={id} className="py-20 px-4 sm:px-6 lg:px-8 border-b border-white/[0.08] scroll-mt-16">
       <div className="max-w-6xl mx-auto space-y-14">
         {/* Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-white/[0.08]">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-white/[0.08]">
+          <div className="max-w-2xl">
             <div className="text-xs font-mono text-[#a855f7] tracking-wider uppercase mb-1 font-semibold">
               {sectionTag}
             </div>
@@ -53,9 +63,54 @@ export const FeaturedPeople: React.FC<FeaturedPeopleProps> = ({
               </p>
             )}
           </div>
-          <div className="text-xs font-mono text-slate-500 hidden sm:block">
-            {people.length} Honored {people.length === 1 ? 'Personality' : 'Personalities'}
-          </div>
+
+          {/* Bottom Right of Header: 2 rounded logos AWS × SSPU */}
+          {logos ? (
+            <div className="flex items-center gap-3 self-start sm:self-end pt-1 sm:pt-0">
+              {/* AWS Logo (Rounded) */}
+              <div
+                className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#080b10] border-2 border-white/[0.15] hover:border-[#ff9900] p-2.5 flex items-center justify-center shadow-xl transition-all overflow-hidden group/aws"
+                title="Amazon Web Services"
+              >
+                {logos.awsLogoUrl ? (
+                  <img
+                    src={logos.awsLogoUrl}
+                    alt="AWS Logo"
+                    className="w-full h-full object-contain rounded-full"
+                  />
+                ) : (
+                  <AwsLogo className="w-8 h-auto" variant="dual" />
+                )}
+              </div>
+
+              {/* Cross / Alliance connector */}
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-white/[0.04] border border-white/[0.1] text-xs font-mono font-bold text-[#ff9900]">
+                ×
+              </div>
+
+              {/* SSPU Logo (Rounded) */}
+              <div
+                className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#080b10] border-2 border-white/[0.15] hover:border-[#a855f7] p-2 flex items-center justify-center shadow-xl transition-all overflow-hidden group/sspu"
+                title="Symbiosis Skills & Professional University"
+              >
+                {logos.sspuLogoUrl ? (
+                  <img
+                    src={logos.sspuLogoUrl}
+                    alt="SSPU Logo"
+                    className="w-full h-full object-contain rounded-full"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-gradient-to-br from-[#a855f7]/30 to-[#00f0ff]/20 flex flex-col items-center justify-center text-center">
+                    <span className="text-[10px] font-mono font-black text-white tracking-tighter">SSPU</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs font-mono text-slate-500 hidden sm:block">
+              {people.length} Honored {people.length === 1 ? 'Personality' : 'Personalities'}
+            </div>
+          )}
         </div>
 
         {/* Unified Cards List (Consistent photo-left, text-right alignment for Chapter Lead and Co-Lead) */}

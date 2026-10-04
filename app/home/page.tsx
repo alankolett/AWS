@@ -44,6 +44,16 @@ export default async function HomePage() {
     'Distinguished industry architects, university patrons, and keynote speakers shaping the AWS student ecosystem.';
   let featuredPeople: FeaturedPerson[] = [];
 
+  // AWS × SSPU Authorities state
+  let showSspuAuthorities = true;
+  let sspuAuthoritiesTag = '// AWS × SSPU ADVISORY & AUTHORITIES';
+  let sspuAuthoritiesTitle = 'SSPU Patrons & Advisory Authorities';
+  let sspuAuthoritiesSubtitle =
+    'Distinguished academic leaders, university directors, and institutional patrons championing the AWS Student Builder Group at Symbiosis Skills and Professional University.';
+  let sspuAwsLogoUrl = '';
+  let sspuLogoUrl = '';
+  let sspuAuthorities: FeaturedPerson[] = [];
+
   let teamPhotoUrl =
     'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1600';
   let teamPhotoCaption =
@@ -77,6 +87,31 @@ export default async function HomePage() {
       featuredPeopleTitle = fpSetting.title || featuredPeopleTitle;
       featuredPeopleSubtitle = fpSetting.subtitle || featuredPeopleSubtitle;
       featuredPeople = Array.isArray(fpSetting.people) ? fpSetting.people : [];
+    }
+
+    const sspuSetting = settings.find((s) => s.key === 'sspu_authorities_section')?.value;
+    if (sspuSetting) {
+      showSspuAuthorities = sspuSetting.show_section !== false;
+      sspuAuthoritiesTag = sspuSetting.tag || sspuAuthoritiesTag;
+      sspuAuthoritiesTitle = sspuSetting.title || sspuAuthoritiesTitle;
+      sspuAuthoritiesSubtitle = sspuSetting.subtitle || sspuAuthoritiesSubtitle;
+      sspuAwsLogoUrl = sspuSetting.aws_logo_url || '';
+      sspuLogoUrl = sspuSetting.sspu_logo_url || '';
+      sspuAuthorities = Array.isArray(sspuSetting.people) ? sspuSetting.people : [];
+    } else {
+      // Default initial authority for demonstration
+      sspuAuthorities = [
+        {
+          id: 'sspu-authority-1',
+          name: 'Dr. Swati Mujumdar',
+          designation: 'Pro-Chancellor & University Patron',
+          organization: 'Symbiosis Skills and Professional University (SSPU)',
+          quote: 'Empowering our students with real-world cloud architectures, cutting-edge industry partnerships, and practical builder skillsets.',
+          bio: 'Visionary educationist leading experiential and skills-based higher education at SSPU Kiwale Campus, bridging academic excellence with enterprise cloud innovation.',
+          photoUrl: '',
+          linkedinUrl: 'https://www.linkedin.com/school/symbiosis-skills-and-professional-university/',
+        }
+      ];
     }
 
     const teamPhotoSetting = settings.find((s) => s.key === 'team_photo')?.value;
@@ -142,6 +177,21 @@ export default async function HomePage() {
             sectionTag={featuredPeopleTag}
             sectionTitle={featuredPeopleTitle}
             sectionSubtitle={featuredPeopleSubtitle}
+          />
+        ) : null}
+
+        {/* AWS × SSPU Authorities & Patrons Section */}
+        {showSspuAuthorities && sspuAuthorities.length > 0 ? (
+          <FeaturedPeople
+            id="sspu-authorities"
+            people={sspuAuthorities}
+            sectionTag={sspuAuthoritiesTag}
+            sectionTitle={sspuAuthoritiesTitle}
+            sectionSubtitle={sspuAuthoritiesSubtitle}
+            logos={{
+              awsLogoUrl: sspuAwsLogoUrl,
+              sspuLogoUrl: sspuLogoUrl,
+            }}
           />
         ) : null}
       </div>

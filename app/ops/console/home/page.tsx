@@ -57,6 +57,15 @@ export default function HomeCMSPage() {
   const [featuredPeopleSubtitle, setFeaturedPeopleSubtitle] = useState('Distinguished industry architects, university patrons, and keynote speakers shaping the AWS student ecosystem.');
   const [featuredPeople, setFeaturedPeople] = useState<FeaturedPerson[]>([]);
 
+  // Section 5: AWS × SSPU Authorities / Contributors Section
+  const [showSspuAuthorities, setShowSspuAuthorities] = useState(true);
+  const [sspuAuthoritiesTag, setSspuAuthoritiesTag] = useState('// AWS × SSPU ADVISORY & AUTHORITIES');
+  const [sspuAuthoritiesTitle, setSspuAuthoritiesTitle] = useState('SSPU Patrons & Advisory Authorities');
+  const [sspuAuthoritiesSubtitle, setSspuAuthoritiesSubtitle] = useState('Distinguished academic leaders, university directors, and institutional patrons championing the AWS Student Builder Group at Symbiosis Skills and Professional University.');
+  const [sspuAwsLogoUrl, setSspuAwsLogoUrl] = useState('');
+  const [sspuLogoUrl, setSspuLogoUrl] = useState('');
+  const [sspuAuthorities, setSspuAuthorities] = useState<FeaturedPerson[]>([]);
+
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
 
@@ -107,6 +116,31 @@ export default function HomeCMSPage() {
           setFeaturedPeopleTitle(fpSetting.title || 'Featured Builders & Dignitaries');
           setFeaturedPeopleSubtitle(fpSetting.subtitle || '');
           setFeaturedPeople(Array.isArray(fpSetting.people) ? fpSetting.people : []);
+        }
+
+        // SSPU Authorities
+        const sspuSetting = settings.find((s) => s.key === 'sspu_authorities_section')?.value;
+        if (sspuSetting) {
+          setShowSspuAuthorities(sspuSetting.show_section !== false);
+          setSspuAuthoritiesTag(sspuSetting.tag || '// AWS × SSPU ADVISORY & AUTHORITIES');
+          setSspuAuthoritiesTitle(sspuSetting.title || 'SSPU Patrons & Advisory Authorities');
+          setSspuAuthoritiesSubtitle(sspuSetting.subtitle || '');
+          setSspuAwsLogoUrl(sspuSetting.aws_logo_url || '');
+          setSspuLogoUrl(sspuSetting.sspu_logo_url || '');
+          setSspuAuthorities(Array.isArray(sspuSetting.people) ? sspuSetting.people : []);
+        } else {
+          setSspuAuthorities([
+            {
+              id: 'sspu-authority-1',
+              name: 'Dr. Swati Mujumdar',
+              designation: 'Pro-Chancellor & University Patron',
+              organization: 'Symbiosis Skills and Professional University (SSPU)',
+              quote: 'Empowering our students with real-world cloud architectures, cutting-edge industry partnerships, and practical builder skillsets.',
+              bio: 'Visionary educationist leading experiential and skills-based higher education at SSPU Kiwale Campus, bridging academic excellence with enterprise cloud innovation.',
+              photoUrl: '',
+              linkedinUrl: 'https://www.linkedin.com/school/symbiosis-skills-and-professional-university/',
+            }
+          ]);
         }
       }
 
@@ -161,6 +195,39 @@ export default function HomeCMSPage() {
       );
     }
     setFeaturedPeople(featuredPeople.filter((_, i) => i !== index));
+  };
+
+  const handleAddSspuAuthority = () => {
+    const newPerson: FeaturedPerson = {
+      id: `sspu-authority-${Date.now()}`,
+      name: '',
+      designation: '',
+      organization: 'Symbiosis Skills and Professional University (SSPU)',
+      quote: '',
+      bio: '',
+      photoUrl: '',
+      linkedinUrl: '',
+      twitterUrl: '',
+      githubUrl: '',
+      portfolioUrl: '',
+    };
+    setSspuAuthorities([...sspuAuthorities, newPerson]);
+  };
+
+  const handleUpdateSspuAuthority = (index: number, updated: Partial<FeaturedPerson>) => {
+    const list = [...sspuAuthorities];
+    list[index] = { ...list[index], ...updated };
+    setSspuAuthorities(list);
+  };
+
+  const handleRemoveSspuAuthority = (index: number) => {
+    const person = sspuAuthorities[index];
+    if (person?.photoUrl) {
+      deleteStorageFileAction(person.photoUrl, 'team-photos').catch((err) =>
+        console.warn('Failed to delete SSPU authority photo:', err)
+      );
+    }
+    setSspuAuthorities(sspuAuthorities.filter((_, i) => i !== index));
   };
 
   const handleVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,6 +305,18 @@ export default function HomeCMSPage() {
           title: featuredPeopleTitle,
           subtitle: featuredPeopleSubtitle,
           people: featuredPeople,
+        },
+      },
+      {
+        key: 'sspu_authorities_section',
+        value: {
+          show_section: showSspuAuthorities,
+          tag: sspuAuthoritiesTag,
+          title: sspuAuthoritiesTitle,
+          subtitle: sspuAuthoritiesSubtitle,
+          aws_logo_url: sspuAwsLogoUrl,
+          sspu_logo_url: sspuLogoUrl,
+          people: sspuAuthorities,
         },
       },
     ]);
@@ -777,6 +856,270 @@ export default function HomeCMSPage() {
             >
               <Plus className="w-4 h-4" />
               <span>+ Add Dignitary / Featured Person</span>
+            </button>
+          </div>
+        </div>
+
+        {/* SECTION 5: AWS × SSPU AUTHORITIES / CONTRIBUTORS */}
+        <div className="p-6 sm:p-8 rounded-2xl bg-[#0f141c] border border-white/[0.08] space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-mono text-[#00f0ff] font-bold uppercase tracking-wider">
+              <Sparkles className="w-4 h-4 text-[#00f0ff]" />
+              <span>SECTION 5: AWS × SSPU AUTHORITIES & CONTRIBUTORS</span>
+            </div>
+
+            {/* Section Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowSspuAuthorities(!showSspuAuthorities)}
+              className="flex items-center gap-2 text-xs font-mono text-slate-300 hover:text-white"
+            >
+              <span>Display Section:</span>
+              {showSspuAuthorities ? (
+                <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                  <ToggleRight className="w-5 h-5 text-emerald-400" /> ON
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-slate-500">
+                  <ToggleLeft className="w-5 h-5 text-slate-500" /> OFF
+                </span>
+              )}
+            </button>
+          </div>
+
+          <p className="text-slate-400 text-xs">
+            Configure institutional leadership, university patrons, and contributors representing the alliance between Amazon Web Services and Symbiosis Skills & Professional University. These profiles render on the home page below the dignitaries section.
+          </p>
+
+          {/* Section Headers Config (Bottom Left) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-[#080b10] border border-white/[0.06]">
+            <div>
+              <label className="block text-[11px] font-mono text-slate-300 mb-1 font-semibold">
+                Section Tag (Bottom Left)
+              </label>
+              <input
+                type="text"
+                value={sspuAuthoritiesTag}
+                onChange={(e) => setSspuAuthoritiesTag(e.target.value)}
+                placeholder="// AWS × SSPU ADVISORY & AUTHORITIES"
+                className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white font-mono focus:border-[#00f0ff] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-mono text-slate-300 mb-1 font-semibold">
+                Section Title (Bottom Left)
+              </label>
+              <input
+                type="text"
+                value={sspuAuthoritiesTitle}
+                onChange={(e) => setSspuAuthoritiesTitle(e.target.value)}
+                placeholder="SSPU Patrons & Advisory Authorities"
+                className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white focus:border-[#00f0ff] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-mono text-slate-300 mb-1 font-semibold">
+                Section Subtitle (Bottom Left)
+              </label>
+              <input
+                type="text"
+                value={sspuAuthoritiesSubtitle}
+                onChange={(e) => setSspuAuthoritiesSubtitle(e.target.value)}
+                placeholder="Key vision and advisory mission..."
+                className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white focus:border-[#00f0ff] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Header Logos Config (Bottom Right): AWS Logo × SSPU Logo */}
+          <div className="p-5 rounded-xl bg-[#080b10] border border-white/[0.08] space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+              <div className="text-xs font-mono text-[#00f0ff] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#00f0ff]" />
+                <span>HEADER LOGOS (AWS × SSPU · BOTTOM RIGHT OF HEADING)</span>
+              </div>
+              <span className="text-[11px] font-mono text-slate-400">
+                Both circular/rounded & customizable
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
+              {/* AWS Logo Customizer */}
+              <div className="space-y-2">
+                <ImageUpload
+                  value={sspuAwsLogoUrl}
+                  onChange={(url) => setSspuAwsLogoUrl(url)}
+                  bucket="cms-media"
+                  label="AWS Logo (Rounded)"
+                  aspect="square"
+                  helperText="Leave empty to use official default AWS logo"
+                />
+              </div>
+
+              {/* SSPU Logo Customizer */}
+              <div className="space-y-2">
+                <ImageUpload
+                  value={sspuLogoUrl}
+                  onChange={(url) => setSspuLogoUrl(url)}
+                  bucket="cms-media"
+                  label="SSPU University Logo (Rounded)"
+                  aspect="square"
+                  helperText="Upload official SSPU crest / logo (PNG/SVG/WebP)"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* List of SSPU Authorities & Dignitaries */}
+          <div className="space-y-6">
+            {sspuAuthorities.map((person, idx) => (
+              <div
+                key={person.id || idx}
+                className="p-5 sm:p-6 rounded-2xl bg-[#080b10] border border-white/[0.1] space-y-5 relative group"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#00f0ff]">
+                    <span>SSPU Authority #{idx + 1}</span>
+                    <span className="text-slate-500">•</span>
+                    <span className="text-slate-400 font-normal">
+                      Card Placement: {idx % 2 === 0 ? 'Photo Left, Text Right' : 'Text Left, Photo Right'}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSspuAuthority(idx)}
+                    className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                    title="Remove Authority"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                  {/* Photo Upload Column */}
+                  <div className="md:col-span-4">
+                    <ImageUpload
+                      value={person.photoUrl || ''}
+                      onChange={(url) => handleUpdateSspuAuthority(idx, { photoUrl: url })}
+                      bucket="team-photos"
+                      label="Portrait Photograph"
+                      aspect="square"
+                      helperText="Square 1:1 or 4:5 ratio headshot"
+                    />
+                  </div>
+
+                  {/* Information Column */}
+                  <div className="md:col-span-8 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-mono text-slate-300 mb-1 font-semibold">
+                          Full Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={person.name}
+                          onChange={(e) => handleUpdateSspuAuthority(idx, { name: e.target.value })}
+                          placeholder="e.g. Dr. Swati Mujumdar"
+                          className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white focus:border-[#00f0ff] focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-mono text-slate-300 mb-1 font-semibold">
+                          Designation / Role Title *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={person.designation}
+                          onChange={(e) => handleUpdateSspuAuthority(idx, { designation: e.target.value })}
+                          placeholder="e.g. Pro-Chancellor / Dean"
+                          className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white focus:border-[#00f0ff] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-mono text-slate-300 mb-1 font-semibold">
+                        Organization / University Affiliation
+                      </label>
+                      <input
+                        type="text"
+                        value={person.organization || ''}
+                        onChange={(e) => handleUpdateSspuAuthority(idx, { organization: e.target.value })}
+                        placeholder="e.g. Symbiosis Skills and Professional University (SSPU)"
+                        className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white focus:border-[#00f0ff] focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-mono text-slate-300 mb-1 font-semibold">
+                        Highlight Quote (Shown prominently)
+                      </label>
+                      <input
+                        type="text"
+                        value={person.quote || ''}
+                        onChange={(e) => handleUpdateSspuAuthority(idx, { quote: e.target.value })}
+                        placeholder="e.g. Empowering our students with practical cloud architecture skills..."
+                        className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white focus:border-[#00f0ff] focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-mono text-slate-300 mb-1 font-semibold">
+                        Biography / Vision
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={person.bio || ''}
+                        onChange={(e) => handleUpdateSspuAuthority(idx, { bio: e.target.value })}
+                        placeholder="Key background, contributions, or association with SSPU & AWS chapter..."
+                        className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg p-2.5 text-xs text-white focus:border-[#00f0ff] focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Social Links */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-white/[0.06]">
+                      <div>
+                        <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                          LinkedIn URL
+                        </label>
+                        <input
+                          type="url"
+                          value={person.linkedinUrl || ''}
+                          onChange={(e) => handleUpdateSspuAuthority(idx, { linkedinUrl: e.target.value })}
+                          placeholder="https://linkedin.com/in/..."
+                          className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:border-[#00f0ff] focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                          Website / Academic Profile URL
+                        </label>
+                        <input
+                          type="url"
+                          value={person.portfolioUrl || ''}
+                          onChange={(e) => handleUpdateSspuAuthority(idx, { portfolioUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full bg-[#0f141c] border border-white/[0.1] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:border-[#00f0ff] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={handleAddSspuAuthority}
+              className="w-full py-3.5 rounded-xl border border-dashed border-white/[0.2] hover:border-[#00f0ff] bg-white/[0.02] hover:bg-[#00f0ff]/10 text-xs font-mono text-slate-300 hover:text-[#00f0ff] flex items-center justify-center gap-2 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Add SSPU Dignitary / Authority</span>
             </button>
           </div>
         </div>
