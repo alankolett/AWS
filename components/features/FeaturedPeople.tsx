@@ -66,42 +66,42 @@ export const FeaturedPeople: React.FC<FeaturedPeopleProps> = ({
 
           {/* Bottom Right of Header: 2 rounded logos AWS × SSPU */}
           {logos ? (
-            <div className="flex items-center gap-3 self-start sm:self-end pt-1 sm:pt-0">
+            <div className="flex items-center justify-center w-full sm:w-auto self-center sm:self-end gap-3 sm:gap-5 pt-4 sm:pt-0">
               {/* AWS Logo (Rounded) */}
               <div
-                className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#080b10] border-2 border-white/[0.15] hover:border-[#ff9900] p-2.5 flex items-center justify-center shadow-xl transition-all overflow-hidden group/aws"
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 shrink-0 aspect-square rounded-full bg-[#080b10] border-2 border-white/[0.18] hover:border-[#ff9900] p-3 sm:p-4 flex items-center justify-center shadow-2xl transition-all overflow-hidden group/aws"
                 title="Amazon Web Services"
               >
                 {logos.awsLogoUrl ? (
                   <img
                     src={logos.awsLogoUrl}
                     alt="AWS Logo"
-                    className="w-full h-full object-contain rounded-full"
+                    className="w-full h-full object-contain rounded-full block max-w-full max-h-full"
                   />
                 ) : (
-                  <AwsLogo className="w-8 h-auto" variant="dual" />
+                  <AwsLogo className="w-10 sm:w-13 md:w-16 h-auto" variant="dual" />
                 )}
               </div>
 
               {/* Cross / Alliance connector */}
-              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-white/[0.04] border border-white/[0.1] text-xs font-mono font-bold text-[#ff9900]">
+              <div className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 shrink-0 rounded-full bg-white/[0.06] border border-white/[0.12] text-xs sm:text-sm font-mono font-bold text-[#ff9900] flex items-center justify-center shadow-sm">
                 ×
               </div>
 
-              {/* SSPU Logo (Rounded) */}
+              {/* SSPU Logo (Rounded to fit the round div) */}
               <div
-                className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#080b10] border-2 border-white/[0.15] hover:border-[#a855f7] p-2 flex items-center justify-center shadow-xl transition-all overflow-hidden group/sspu"
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 shrink-0 aspect-square rounded-full bg-[#080b10] border-2 border-white/[0.18] hover:border-[#a855f7] flex items-center justify-center shadow-2xl transition-all overflow-hidden group/sspu"
                 title="Symbiosis Skills & Professional University"
               >
                 {logos.sspuLogoUrl ? (
                   <img
                     src={logos.sspuLogoUrl}
                     alt="SSPU Logo"
-                    className="w-full h-full object-contain rounded-full"
+                    className="w-full h-full object-cover rounded-full block"
                   />
                 ) : (
-                  <div className="w-full h-full rounded-full bg-gradient-to-br from-[#a855f7]/30 to-[#00f0ff]/20 flex flex-col items-center justify-center text-center">
-                    <span className="text-[10px] font-mono font-black text-white tracking-tighter">SSPU</span>
+                  <div className="w-full h-full rounded-full bg-gradient-to-br from-[#a855f7]/30 to-[#00f0ff]/20 flex flex-col items-center justify-center text-center p-1">
+                    <span className="text-[11px] sm:text-sm font-mono font-black text-white tracking-wider">SSPU</span>
                   </div>
                 )}
               </div>

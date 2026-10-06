@@ -35,11 +35,16 @@ export default function HomeCMSPage() {
   const [heroTitle, setHeroTitle] = useState('');
   const [heroSubtitle, setHeroSubtitle] = useState('');
   const [heroVideoUrl, setHeroVideoUrl] = useState('');
+  const [heroMobileVideoUrl, setHeroMobileVideoUrl] = useState('');
   const [showHeroVideo, setShowHeroVideo] = useState(true);
   const [heroLogoUrl, setHeroLogoUrl] = useState('');
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [videoError, setVideoError] = useState('');
   const videoInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [uploadingMobileVideo, setUploadingMobileVideo] = useState(false);
+  const [mobileVideoError, setMobileVideoError] = useState('');
+  const mobileVideoInputRef = useRef<HTMLInputElement | null>(null);
 
   // Section 2: Team Photo
   const [teamPhotoUrl, setTeamPhotoUrl] = useState('');
@@ -82,6 +87,7 @@ export default function HomeCMSPage() {
           setHeroTitle(hero.title || '');
           setHeroSubtitle(hero.subtitle || '');
           setHeroVideoUrl(hero.video_url || '');
+          setHeroMobileVideoUrl(hero.mobile_video_url || '');
           setShowHeroVideo(hero.show_video !== false);
           setHeroLogoUrl(hero.logo_url || '');
         }
@@ -262,6 +268,38 @@ export default function HomeCMSPage() {
     }
   };
 
+  const handleMobileVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setMobileVideoError('');
+    setUploadingMobileVideo(true);
+
+    const oldVideo = heroMobileVideoUrl;
+    const formData = new FormData();
+    formData.append('file', file);
+    if (oldVideo) {
+      formData.append('oldFileUrl', oldVideo);
+    }
+
+    const res = await uploadMediaAction(formData, 'cms-media');
+    if (res.error) {
+      setMobileVideoError(res.error);
+    } else if (res.publicUrl) {
+      setHeroMobileVideoUrl(res.publicUrl);
+      setShowHeroVideo(true);
+      if (oldVideo && oldVideo !== res.publicUrl) {
+        deleteStorageFileAction(oldVideo, 'cms-media').catch((err) =>
+          console.warn('Failed to purge replaced mobile video:', err)
+        );
+      }
+    }
+    setUploadingMobileVideo(false);
+    if (mobileVideoInputRef.current) {
+      mobileVideoInputRef.current.value = '';
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -274,6 +312,7 @@ export default function HomeCMSPage() {
           title: heroTitle,
           subtitle: heroSubtitle,
           video_url: heroVideoUrl.trim(),
+          mobile_video_url: heroMobileVideoUrl.trim(),
           show_video: showHeroVideo,
           logo_url: heroLogoUrl,
         },
@@ -426,90 +465,178 @@ export default function HomeCMSPage() {
             />
           </div>
 
-          {/* Video Configuration (Upload or Direct URL) */}
-          <div className="space-y-4 pt-2 border-t border-white/[0.08]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label className="block text-xs font-mono text-slate-300 font-medium flex items-center gap-2">
-                <Video className="w-3.5 h-3.5 text-[#00f0ff]" />
-                <span>Hero Background Video (Upload to Supabase Storage or enter URL)</span>
-              </label>
-              <span className="text-[10px] font-mono text-cyan-400">1-Year Cache Optimized</span>
-            </div>
-
-            {/* Video Preview Player if URL is set */}
-            {heroVideoUrl && (
-              <div className="relative rounded-2xl overflow-hidden border border-white/[0.15] bg-[#080b10] max-w-lg aspect-video shadow-xl">
-                <video
-                  src={heroVideoUrl}
-                  controls
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (heroVideoUrl) {
-                      deleteStorageFileAction(heroVideoUrl, 'cms-media').catch((err) =>
-                        console.warn('Failed to purge removed video:', err)
-                      );
-                    }
-                    setHeroVideoUrl('');
-                    setShowHeroVideo(false);
-                  }}
-                  className="absolute top-3 right-3 p-1.5 rounded-lg bg-red-500/80 hover:bg-red-500 text-white backdrop-blur transition-colors"
-                  title="Remove Video"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+          {/* Video Configuration (Dual Desktop & Mobile Videos) */}
+          <div className="space-y-6 pt-4 border-t border-white/[0.08]">
+            <div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="block text-xs font-mono text-slate-200 font-bold flex items-center gap-2">
+                  <Video className="w-4 h-4 text-[#00f0ff]" />
+                  <span>HERO BACKGROUND VIDEOS (DESKTOP & MOBILE RESPONSIVE)</span>
+                </label>
+                <span className="text-[10px] font-mono text-cyan-400">1-Year Cache Optimized</span>
               </div>
-            )}
-
-            {/* Upload Button + File Input */}
-            <div className="flex flex-wrap items-center gap-3">
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/mp4,video/webm,video/ogg"
-                onChange={handleVideoFileChange}
-                className="hidden"
-              />
-              <button
-                type="button"
-                disabled={uploadingVideo}
-                onClick={() => videoInputRef.current?.click()}
-                className="px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/[0.15] text-xs font-mono flex items-center gap-2 transition-colors disabled:opacity-50"
-              >
-                {uploadingVideo ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-[#00f0ff]" />
-                    <span>Uploading & Caching in Supabase...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 text-[#00f0ff]" />
-                    <span>Upload Video File (MP4 / WebM)</span>
-                  </>
-                )}
-              </button>
-
-              <span className="text-xs font-mono text-slate-500">or enter direct URL below</span>
+              <p className="text-xs text-slate-400 mt-1">
+                Upload separate videos for laptop and mobile screens so the mobile loop runs smoothly without lag or heavy battery drain.
+              </p>
             </div>
 
-            {videoError && (
-              <p className="text-xs font-mono text-red-400">{videoError}</p>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Desktop / Laptop Video */}
+              <div className="p-4 sm:p-5 rounded-xl bg-[#080b10] border border-white/[0.08] space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+                  <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                    <span>💻 Desktop / Laptop Video</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">1080p / 16:9</span>
+                </div>
 
-            <input
-              type="url"
-              value={heroVideoUrl}
-              onChange={(e) => setHeroVideoUrl(e.target.value)}
-              placeholder="e.g. https://your-cdn.com/reinvent-hero.mp4 (or uploaded Supabase storage URL)"
-              className="w-full bg-[#080b10] border border-white/[0.1] rounded-lg px-3.5 py-2.5 text-xs text-white focus:border-[#00f0ff] focus:outline-none font-mono"
-            />
-            <p className="text-[10px] text-slate-500">
-              Mimics AWS re:Invent keynote full-screen video with translucent floating glass card. Uploaded video is permanently stored in Supabase with immutable caching headers for optimal speed.
-            </p>
+                {heroVideoUrl && (
+                  <div className="relative rounded-xl overflow-hidden border border-white/[0.12] bg-black aspect-video shadow-md">
+                    <video
+                      src={heroVideoUrl}
+                      controls
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (heroVideoUrl) {
+                          deleteStorageFileAction(heroVideoUrl, 'cms-media').catch((err) =>
+                            console.warn('Failed to purge removed video:', err)
+                          );
+                        }
+                        setHeroVideoUrl('');
+                      }}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500/80 hover:bg-red-500 text-white backdrop-blur transition-colors"
+                      title="Remove Desktop Video"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/mp4,video/webm,video/ogg"
+                    onChange={handleVideoFileChange}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={uploadingVideo}
+                    onClick={() => videoInputRef.current?.click()}
+                    className="px-3.5 py-2 rounded-lg bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/[0.15] text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  >
+                    {uploadingVideo ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00f0ff]" />
+                        <span>Uploading Desktop Video...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3.5 h-3.5 text-[#00f0ff]" />
+                        <span>Upload Desktop Video</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {videoError && <p className="text-xs font-mono text-red-400">{videoError}</p>}
+
+                <div>
+                  <label className="block text-[10px] font-mono text-slate-400 mb-1">Direct Desktop Video URL</label>
+                  <input
+                    type="url"
+                    value={heroVideoUrl}
+                    onChange={(e) => setHeroVideoUrl(e.target.value)}
+                    placeholder="https://.../desktop-loop.mp4"
+                    className="w-full bg-[#0f141c] border border-white/[0.1] rounded px-3 py-1.5 text-xs text-white focus:border-[#00f0ff] focus:outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Mobile Hero Video */}
+              <div className="p-4 sm:p-5 rounded-xl bg-[#080b10] border border-white/[0.08] space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+                  <span className="text-xs font-mono font-bold text-[#ff9900] flex items-center gap-1.5">
+                    <span>📱 Mobile Video (Smooth Loop)</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-amber-400 font-semibold">Lightweight / Fast</span>
+                </div>
+
+                {heroMobileVideoUrl && (
+                  <div className="relative rounded-xl overflow-hidden border border-white/[0.12] bg-black aspect-video shadow-md">
+                    <video
+                      src={heroMobileVideoUrl}
+                      controls
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (heroMobileVideoUrl) {
+                          deleteStorageFileAction(heroMobileVideoUrl, 'cms-media').catch((err) =>
+                            console.warn('Failed to purge removed mobile video:', err)
+                          );
+                        }
+                        setHeroMobileVideoUrl('');
+                      }}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500/80 hover:bg-red-500 text-white backdrop-blur transition-colors"
+                      title="Remove Mobile Video"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <input
+                    ref={mobileVideoInputRef}
+                    type="file"
+                    accept="video/mp4,video/webm,video/ogg"
+                    onChange={handleMobileVideoFileChange}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={uploadingMobileVideo}
+                    onClick={() => mobileVideoInputRef.current?.click()}
+                    className="px-3.5 py-2 rounded-lg bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/[0.15] text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  >
+                    {uploadingMobileVideo ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#ff9900]" />
+                        <span>Uploading Mobile Video...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3.5 h-3.5 text-[#ff9900]" />
+                        <span>Upload Mobile Video</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {mobileVideoError && <p className="text-xs font-mono text-red-400">{mobileVideoError}</p>}
+
+                <div>
+                  <label className="block text-[10px] font-mono text-slate-400 mb-1">Direct Mobile Video URL</label>
+                  <input
+                    type="url"
+                    value={heroMobileVideoUrl}
+                    onChange={(e) => setHeroMobileVideoUrl(e.target.value)}
+                    placeholder="https://.../mobile-loop.mp4"
+                    className="w-full bg-[#0f141c] border border-white/[0.1] rounded px-3 py-1.5 text-xs text-white focus:border-[#ff9900] focus:outline-none font-mono"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Rounded Hero Emblem / Chapter Logo Upload */}
@@ -952,6 +1079,7 @@ export default function HomeCMSPage() {
                   bucket="cms-media"
                   label="AWS Logo (Rounded)"
                   aspect="square"
+                  rounded="full"
                   helperText="Leave empty to use official default AWS logo"
                 />
               </div>
@@ -964,6 +1092,7 @@ export default function HomeCMSPage() {
                   bucket="cms-media"
                   label="SSPU University Logo (Rounded)"
                   aspect="square"
+                  rounded="full"
                   helperText="Upload official SSPU crest / logo (PNG/SVG/WebP)"
                 />
               </div>

@@ -111,12 +111,12 @@ export default async function ContactPage() {
           </p>
         </div>
 
-        {/* 2-Column Grid: Contact & Socials (Left) + Featured LinkedIn Post (Right) */}
+        {/* 2-Column Grid on Desktop / Ordered Stream on Mobile (LinkedIn post right after affiliate links) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column (6 cols): Channel Info & Direct Contact */}
-          <div className="lg:col-span-6 space-y-6">
-            {/* Primary Contact Card */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-[#0f141c]/90 backdrop-blur-xl border border-white/[0.1] shadow-2xl space-y-6">
+          {/* Left Column Container (6 cols on desktop, contents on mobile) */}
+          <div className="contents lg:block lg:col-span-6 lg:space-y-6">
+            {/* Primary Contact Card (Order 1 on mobile: contains official office, email, and social/affiliate links) */}
+            <div className="order-1 p-6 sm:p-8 rounded-3xl bg-[#0f141c]/90 backdrop-blur-xl border border-white/[0.1] shadow-2xl space-y-6">
               <div className="flex items-center gap-3">
                 <div className="h-9 px-2.5 rounded-lg bg-[#080b10] border border-white/[0.12] flex items-center justify-center">
                   <AwsLogo className="w-6 h-auto" variant="dual" />
@@ -150,7 +150,7 @@ export default async function ContactPage() {
                 </a>
               </div>
 
-              {/* Social Channels List */}
+              {/* Social Channels List (Affiliate Links) */}
               <div className="space-y-3 pt-2">
                 <div className="text-xs font-mono text-slate-300 font-semibold uppercase tracking-wider">
                   Active Social & Community Channels
@@ -175,8 +175,8 @@ export default async function ContactPage() {
               </div>
             </div>
 
-            {/* College Campus Location Card with Interactive Google Maps Embed */}
-            <div className="p-6 sm:p-7 rounded-3xl bg-[#0f141c]/90 backdrop-blur-xl border border-white/[0.1] shadow-2xl space-y-4">
+            {/* College Campus Location Card with Interactive Google Maps Embed (Order 3 on mobile) */}
+            <div className="order-3 p-6 sm:p-7 rounded-3xl bg-[#0f141c]/90 backdrop-blur-xl border border-white/[0.1] shadow-2xl space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 rounded-lg bg-[#00f0ff]/10 text-[#00f0ff] shrink-0">
@@ -223,8 +223,8 @@ export default async function ContactPage() {
               </div>
             </div>
 
-            {/* Chapter Leadership Direct Contact Card */}
-            <div className="p-6 rounded-2xl bg-[#0f141c]/80 backdrop-blur border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Chapter Leadership Direct Contact Card (Order 4 on mobile) */}
+            <div className="order-4 p-6 rounded-2xl bg-[#0f141c]/80 backdrop-blur border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-[#a855f7] shrink-0">
                   <User className="w-6 h-6" />
@@ -258,8 +258,8 @@ export default async function ContactPage() {
             </div>
           </div>
 
-          {/* Right Column (6 cols): Dynamic Featured LinkedIn Post Spotlight */}
-          <div className="lg:col-span-6 space-y-4">
+          {/* Right Column / Order 2 on Mobile: Dynamic Featured LinkedIn Post Spotlight (placed immediately after affiliate links) */}
+          <div className="order-2 lg:order-none lg:col-span-6 space-y-4">
             <div className="p-6 sm:p-7 rounded-3xl bg-[#0f141c]/90 backdrop-blur-xl border border-white/[0.1] shadow-2xl space-y-5">
               <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
                 <div className="flex items-center gap-2 text-xs font-mono text-[#0a66c2] font-bold uppercase tracking-wider">

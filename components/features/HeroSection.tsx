@@ -9,6 +9,7 @@ interface HeroSectionProps {
   title: string;
   subtitle: string;
   videoUrl?: string;
+  mobileVideoUrl?: string;
   showVideo?: boolean;
   logoUrl?: string;
 }
@@ -17,11 +18,22 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   title,
   subtitle,
   videoUrl,
+  mobileVideoUrl,
   showVideo = true,
   logoUrl,
 }) => {
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -34,7 +46,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     }
   };
 
-  const hasActiveVideo = Boolean(videoUrl && videoUrl.trim() && showVideo);
+  // Dynamically select video based on device breakpoint
+  const activeVideoUrl = (isMobile && mobileVideoUrl && mobileVideoUrl.trim())
+    ? mobileVideoUrl.trim()
+    : (videoUrl && videoUrl.trim()) || (mobileVideoUrl && mobileVideoUrl.trim()) || '';
+
+  const hasActiveVideo = Boolean(activeVideoUrl && showVideo);
 
   return (
     <section id="about" className="relative w-full overflow-hidden border-b border-white/[0.08]">
@@ -46,14 +63,24 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
             <video
               ref={videoRef}
+              key={activeVideoUrl}
               autoPlay
               loop
               muted
               playsInline
               preload="metadata"
+              disablePictureInPicture
+              disableRemotePlayback
               className="w-full h-full object-cover scale-105"
-              src={videoUrl}
-            />
+            >
+              {mobileVideoUrl && (
+                <source src={mobileVideoUrl} media="(max-width: 767px)" type="video/mp4" />
+              )}
+              {videoUrl && (
+                <source src={videoUrl} media="(min-width: 768px)" type="video/mp4" />
+              )}
+              <source src={activeVideoUrl} type="video/mp4" />
+            </video>
             {/* Soft atmospheric gradient: center is completely crystal clear and vibrant */}
             <div className="absolute inset-0 bg-gradient-to-b from-[#080b10]/50 via-transparent to-[#080b10]" />
           </div>

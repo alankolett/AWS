@@ -97,10 +97,9 @@ export const MeetTeam: React.FC<MeetTeamProps> = ({ sections, profiles, settings
   };
 
   const chapterLead = allSortedProfiles.find(isChapterLead);
-  const coChapterLead = allSortedProfiles.find(p => p.id !== chapterLead?.id && isCoChapterLead(p));
-  const campusLead = allSortedProfiles.find(p => p.id !== chapterLead?.id && p.id !== coChapterLead?.id && isCampusLead(p));
+  const campusLead = allSortedProfiles.find(p => p.id !== chapterLead?.id && isCampusLead(p));
 
-  const executiveLeadIds = new Set([chapterLead?.id, coChapterLead?.id, campusLead?.id].filter(Boolean));
+  const executiveLeadIds = new Set([chapterLead?.id, campusLead?.id].filter(Boolean));
 
   // 3. Departmental Sections (Excluding executive leads and any section named Co-Chapter Lead / Chapter Lead)
   const isExecutiveSection = (name: string) => {
@@ -136,8 +135,7 @@ export const MeetTeam: React.FC<MeetTeamProps> = ({ sections, profiles, settings
         </div>
 
         {/* ============================================================== */}
-        {/* REQUIREMENT 1 & WIREFRAME TOP ROW:                            */}
-        {/* Chapter Lead | Co-Chapter Lead | Campus Lead (In the same row) */}
+        {/* EXECUTIVE CHAPTER LEADERSHIP: Chapter Lead | Campus Lead       */}
         {/* ============================================================== */}
         <div className="space-y-6">
           <div className="flex items-center gap-2 text-xs font-mono text-[#a855f7] uppercase font-bold tracking-wider pb-2 border-b border-white/[0.08]">
@@ -145,11 +143,11 @@ export const MeetTeam: React.FC<MeetTeamProps> = ({ sections, profiles, settings
             <span>EXECUTIVE CHAPTER LEADERSHIP</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+          <div className="flex flex-col sm:flex-row justify-center items-stretch gap-8 lg:gap-12">
             {/* Column 1: Chapter Lead */}
-            <div className="flex flex-col space-y-3">
-              <div className="text-center md:text-left">
-                <h2 className="text-lg sm:text-xl font-bold text-white font-sans flex items-center justify-center md:justify-start gap-2">
+            <div className="w-full sm:w-80 md:w-[340px] max-w-[340px] mx-auto sm:mx-0 flex flex-col space-y-3">
+              <div className="text-center sm:text-left">
+                <h2 className="text-lg sm:text-xl font-bold text-white font-sans flex items-center justify-center sm:justify-start gap-2">
                   <Crown className="w-4 h-4 text-[#ff9900]" />
                   <span>Chapter Lead</span>
                 </h2>
@@ -162,26 +160,10 @@ export const MeetTeam: React.FC<MeetTeamProps> = ({ sections, profiles, settings
               )}
             </div>
 
-            {/* Column 2: Co-Chapter Lead */}
-            <div className="flex flex-col space-y-3">
-              <div className="text-center md:text-left">
-                <h2 className="text-lg sm:text-xl font-bold text-white font-sans flex items-center justify-center md:justify-start gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[#ff9900]" />
-                  <span>Co-Chapter Lead</span>
-                </h2>
-                <p className="text-[11px] font-mono text-[#ff9900] mt-0.5">Technical &amp; Architecture Operations</p>
-              </div>
-              {coChapterLead ? (
-                <FeaturedLeadCard member={coChapterLead} badgeLabel="CO-CHAPTER LEAD" />
-              ) : (
-                <PlaceholderLeadCard title="Co-Chapter Lead" description="Co-director overseeing curriculum, community hackathons, and labs." />
-              )}
-            </div>
-
-            {/* Column 3: Campus Lead */}
-            <div className="flex flex-col space-y-3">
-              <div className="text-center md:text-left">
-                <h2 className="text-lg sm:text-xl font-bold text-white font-sans flex items-center justify-center md:justify-start gap-2">
+            {/* Column 2: Campus Lead */}
+            <div className="w-full sm:w-80 md:w-[340px] max-w-[340px] mx-auto sm:mx-0 flex flex-col space-y-3">
+              <div className="text-center sm:text-left">
+                <h2 className="text-lg sm:text-xl font-bold text-white font-sans flex items-center justify-center sm:justify-start gap-2">
                   <Sparkles className="w-4 h-4 text-[#ff9900]" />
                   <span>Campus Lead</span>
                 </h2>
@@ -197,9 +179,8 @@ export const MeetTeam: React.FC<MeetTeamProps> = ({ sections, profiles, settings
         </div>
 
         {/* ============================================================== */}
-        {/* REQUIREMENT 4 & WIREFRAME: DEPARTMENTAL TEAMS                   */}
-        {/* Technical Team, Cloud Security Team, etc.                      */}
-        {/* Left Side: Lead Card | Right Side: Small Card Team Members     */}
+        {/* DEPARTMENTAL TEAMS (Technical Team, Cloud Security Team, etc.) */}
+        {/* Maintained in authentic card style like Image 3               */}
         {/* ============================================================== */}
         {departmentSections.length > 0 && (
           <div className="space-y-20 pt-8">
@@ -207,15 +188,13 @@ export const MeetTeam: React.FC<MeetTeamProps> = ({ sections, profiles, settings
               const sectionMembers = remainingProfiles.filter(p => p.team_section_id === section.id);
               if (sectionMembers.length === 0) return null;
 
-              // Lead of this domain (first lead or first with is_lead true)
-              const domainLead = sectionMembers.find(m => m.is_lead);
-              const otherMembers = domainLead
-                ? sectionMembers.filter(m => m.id !== domainLead.id)
-                : sectionMembers;
+              // Leads of this domain (supports 1 or 2 leads)
+              const domainLeads = sectionMembers.filter(m => m.is_lead);
+              const associateMembers = sectionMembers.filter(m => !m.is_lead);
 
               return (
                 <div key={section.id} className="space-y-6 pt-8 border-t border-white/[0.08]">
-                  {/* Division Title (matches "Technical Team" from wireframe) */}
+                  {/* Division Title */}
                   <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-white/[0.06] pb-3">
                     <h2 className="text-2xl sm:text-3xl font-bold text-white font-sans tracking-tight">
                       {section.name}
@@ -225,40 +204,70 @@ export const MeetTeam: React.FC<MeetTeamProps> = ({ sections, profiles, settings
                     </span>
                   </div>
 
-                  {/* Wireframe Layout: Lead on Left, Small cards grid on Right */}
-                  {domainLead ? (
-                    <div className="flex flex-col lg:flex-row gap-6 items-stretch">
-                      {/* Left Column: Domain Lead Card */}
-                      <div className="w-full lg:w-80 shrink-0 flex flex-col space-y-2">
-                        <div className="text-xs font-mono text-[#ff9900] font-bold uppercase tracking-wider flex items-center gap-1.5 px-1">
-                          <Crown className="w-3.5 h-3.5 text-[#ff9900]" />
-                          <span>Lead</span>
+                  {domainLeads.length > 0 ? (
+                    domainLeads.length === 1 ? (
+                      /* Single Domain Lead Layout: Lead on Left (Card Style w-80), Team Members on Right */
+                      <div className="flex flex-col lg:flex-row gap-6 items-stretch">
+                        <div className="w-full sm:w-80 lg:w-80 max-w-[340px] mx-auto lg:mx-0 shrink-0 flex flex-col space-y-2">
+                          <div className="text-xs font-mono text-[#ff9900] font-bold uppercase tracking-wider flex items-center gap-1.5 px-1">
+                            <Crown className="w-3.5 h-3.5 text-[#ff9900]" />
+                            <span>Lead</span>
+                          </div>
+                          <FeaturedLeadCard member={domainLeads[0]} badgeLabel="DOMAIN LEAD" />
                         </div>
-                        <FeaturedLeadCard member={domainLead} badgeLabel="DOMAIN LEAD" />
-                      </div>
 
-                      {/* Right Column: Small Member Cards Grid */}
-                      <div className="flex-1 w-full flex flex-col">
-                        <div className="text-xs font-mono text-slate-400 font-bold uppercase tracking-wider px-1 mb-2">
-                          Team Members
+                        <div className="flex-1 w-full flex flex-col">
+                          <div className="text-xs font-mono text-slate-400 font-bold uppercase tracking-wider px-1 mb-2">
+                            Team Members
+                          </div>
+                          {associateMembers.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 auto-rows-fr">
+                              {associateMembers.map(member => (
+                                <CompactMemberCard key={member.id} member={member} />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="h-full min-h-[220px] flex items-center justify-center p-8 rounded-2xl bg-[#0f141c]/40 border border-white/[0.06] text-slate-500 text-xs font-mono text-center">
+                              Domain Lead designated. Additional team members will appear here as they are provisioned.
+                            </div>
+                          )}
                         </div>
-                        {otherMembers.length > 0 ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 auto-rows-fr">
-                            {otherMembers.map(member => (
-                              <CompactMemberCard key={member.id} member={member} />
+                      </div>
+                    ) : (
+                      /* Multiple Domain Leads (e.g. 2 Leads): Both Leads maintained in card style like Image 3, associate members as they are */
+                      <div className="space-y-8">
+                        <div className="space-y-3">
+                          <div className="text-xs font-mono text-[#ff9900] font-bold uppercase tracking-wider flex items-center gap-1.5 px-1">
+                            <Crown className="w-3.5 h-3.5 text-[#ff9900]" />
+                            <span>Domain Leads ({domainLeads.length})</span>
+                          </div>
+                          <div className="flex flex-wrap gap-6 items-stretch">
+                            {domainLeads.map(lead => (
+                              <div key={lead.id} className="w-full sm:w-80 md:w-[340px] max-w-[340px] shrink-0">
+                                <FeaturedLeadCard member={lead} badgeLabel="DOMAIN LEAD" />
+                              </div>
                             ))}
                           </div>
-                        ) : (
-                          <div className="h-full min-h-[220px] flex items-center justify-center p-8 rounded-2xl bg-[#0f141c]/40 border border-white/[0.06] text-slate-500 text-xs font-mono text-center">
-                            Domain Lead designated. Additional team members will appear here as they are provisioned.
+                        </div>
+
+                        {associateMembers.length > 0 && (
+                          <div className="space-y-3 pt-4 border-t border-white/[0.06]">
+                            <div className="text-xs font-mono text-slate-400 font-bold uppercase tracking-wider px-1">
+                              Team Members ({associateMembers.length})
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                              {associateMembers.map(member => (
+                                <CompactMemberCard key={member.id} member={member} />
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
-                    </div>
+                    )
                   ) : (
-                    /* If no domain lead is set yet, render all members cleanly in small cards */
+                    /* If no domain lead is set yet, render all members cleanly in compact cards */
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                      {otherMembers.map(member => (
+                      {associateMembers.map(member => (
                         <CompactMemberCard key={member.id} member={member} />
                       ))}
                     </div>
@@ -301,7 +310,7 @@ export const MeetTeam: React.FC<MeetTeamProps> = ({ sections, profiles, settings
 // =====================================================================
 function FeaturedLeadCard({ member, badgeLabel = 'LEAD' }: { member: any; badgeLabel?: string }) {
   return (
-    <div className="group p-6 rounded-2xl bg-[#0f141c] border border-white/[0.1] hover:border-[#ff9900]/50 transition-all duration-300 flex flex-col justify-between shadow-xl relative h-full">
+    <div className="group p-6 rounded-2xl bg-[#0f141c] border border-white/[0.1] hover:border-[#ff9900]/50 transition-all duration-300 flex flex-col justify-between shadow-xl relative h-full w-full max-w-[340px] mx-auto">
       <div>
         {/* Square Avatar with Orange Border (Requirement 2) */}
         <div className="relative mb-5 text-center">
@@ -588,7 +597,7 @@ function CompactMemberCard({ member }: { member: any }) {
 // Placeholder card when a leadership role is not yet assigned
 function PlaceholderLeadCard({ title, description }: { title: string; description: string }) {
   return (
-    <div className="p-6 rounded-2xl bg-[#0f141c]/50 border border-dashed border-white/[0.1] flex flex-col justify-center items-center text-center space-y-3 h-full min-h-[300px]">
+    <div className="p-6 rounded-2xl bg-[#0f141c]/50 border border-dashed border-white/[0.1] flex flex-col justify-center items-center text-center space-y-3 h-full min-h-[300px] w-full max-w-[340px] mx-auto">
       <div className="w-16 h-16 rounded-2xl bg-[#080b10] border border-white/[0.1] flex items-center justify-center text-slate-600">
         <Crown className="w-8 h-8 text-slate-600" />
       </div>

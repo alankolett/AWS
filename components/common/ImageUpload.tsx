@@ -11,6 +11,7 @@ interface ImageUploadProps {
   label?: string;
   aspect?: 'square' | 'video' | 'banner' | 'auto';
   helperText?: string;
+  rounded?: 'default' | 'full';
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -19,7 +20,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   bucket = 'cms-media',
   label = 'Upload Image',
   aspect = 'auto',
-  helperText = 'PNG, JPG, WebP up to 10MB'
+  helperText = 'PNG, JPG, WebP up to 10MB',
+  rounded = 'default',
 }) => {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -109,11 +111,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       )}
 
       {preview ? (
-        <div className={`relative rounded-xl overflow-hidden border border-white/[0.15] bg-[#080b10] group ${aspectClass}`}>
+        <div className={`relative ${rounded === 'full' ? 'rounded-full' : 'rounded-xl'} overflow-hidden border border-white/[0.15] bg-[#080b10] group ${aspectClass}`}>
           <img
             src={preview}
             alt="Uploaded preview"
-            className="w-full h-full object-cover"
+            className={`w-full h-full ${rounded === 'full' ? 'rounded-full' : ''} object-cover`}
           />
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
             <button

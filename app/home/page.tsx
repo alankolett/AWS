@@ -29,6 +29,7 @@ export default async function HomePage() {
   let heroSubtitle =
     'The official AWS Student Builder Group at Symbiosis Skills and Professional University.';
   let heroVideoUrl = '';
+  let heroMobileVideoUrl = '';
   let showHeroVideo = true;
   let heroLogoUrl = '';
 
@@ -65,6 +66,7 @@ export default async function HomePage() {
       heroTitle = heroSetting.title || heroTitle;
       heroSubtitle = heroSetting.subtitle || heroSubtitle;
       heroVideoUrl = heroSetting.video_url || '';
+      heroMobileVideoUrl = heroSetting.mobile_video_url || '';
       showHeroVideo = heroSetting.show_video !== false;
       heroLogoUrl = heroSetting.logo_url || '';
     }
@@ -129,6 +131,7 @@ export default async function HomePage() {
           title={heroTitle}
           subtitle={heroSubtitle}
           videoUrl={heroVideoUrl}
+          mobileVideoUrl={heroMobileVideoUrl}
           showVideo={showHeroVideo}
           logoUrl={heroLogoUrl}
         />
